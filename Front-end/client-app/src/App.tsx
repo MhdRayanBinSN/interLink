@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { AnimatePresence } from "framer-motion"
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
+import EventDiscovery from './pages/EventDiscovery';
 
 //import Home from "./pages/Home"
 interface IAppProps {
@@ -17,6 +18,7 @@ const App: React.FunctionComponent<IAppProps> = () => {
         <AnimatePresence mode="wait">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/events" element={<EventDiscovery />} />
           </Routes>
         </AnimatePresence>
       </div>
