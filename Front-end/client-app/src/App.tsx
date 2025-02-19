@@ -8,6 +8,7 @@ import EventBooking from './pages/EventBooking';
 import UserDashboard from './pages/UserDashboard';
 import Login from './pages/Login';
 import OrganizerDashboard from './pages/OrganizerDashboard';
+import { EventDetails } from './pages/EventDetails';
 
 //import Home from "./pages/Home"
 interface IAppProps {
@@ -23,7 +24,7 @@ const App: React.FunctionComponent<IAppProps> = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/events" element={<EventDiscovery />} />
-            <Route path="/events/:id" element={<EventBooking />} />
+            <Route path="/events/:id" element={<EventDetails />} />
             <Route path="/dashboard/user" element={<UserDashboard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard/organizer" element={<OrganizerDashboard />} />

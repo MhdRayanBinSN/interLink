@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   darkMode: ["class"],
   content: [  
     "./index.html",
@@ -12,6 +12,7 @@ export default {
         banner:"url('./src/assets/bg.jpg')",
       },
       colors: {
+        custBlack:'#1d2132',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

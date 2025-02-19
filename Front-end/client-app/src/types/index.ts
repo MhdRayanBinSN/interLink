@@ -5,6 +5,7 @@ export interface Event {
     date: Date;
     location: string;
     category: 'bootcamp' | 'hackathon' | 'conference';
+    language:string
     imageUrl: string;
     organizer: {
       name: string;
