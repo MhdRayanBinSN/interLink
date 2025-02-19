@@ -3,80 +3,94 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { useStore } from "../store"
 import { Link } from "react-router-dom"
+import { Event } from '../types';
+import { Search, Filter } from 'lucide-react';
+import { EventCard } from '../components/EventCard';
+
 
 interface IEventDiscoveryProps {
 }
 
+
+const mockEvents: Event[] = [
+  {
+    id: '1',
+    title: 'React Summit 2024',
+    description: 'The biggest React conference in Europe',
+    date: new Date('2024-06-15'),
+    location: 'Amsterdam, Netherlands',
+    category: 'conference',
+    imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87',
+    organizer: {
+      name: 'Tech Events Inc',
+      email: 'info@techevents.com',
+    },
+    price: 599,
+    capacity: 1000,
+    registeredCount: 750,
+  },
+  {
+    id: '2',
+    title: 'Web3 Hackathon',
+    description: 'Build the future of decentralized applications',
+    date: new Date('2024-07-20'),
+    location: 'San Francisco, USA',
+    category: 'hackathon',
+    imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c',
+    organizer: {
+      name: 'BlockChain Society',
+      email: 'hello@bcsociety.org',
+    },
+    price: 0,
+    capacity: 200,
+    registeredCount: 156,
+  },
+];
 const EventDiscovery: React.FunctionComponent<IEventDiscoveryProps> = (props) => {
-    const { events } = useStore()
-    const [filter, setFilter] = useState("")
-    const [sort, setSort] = useState("date")
-  
-    const filteredEvents = events
-      .filter(
-        (event) =>
-          event.title.toLowerCase().includes(filter.toLowerCase()) ||
-          event.category.toLowerCase().includes(filter.toLowerCase()),
-      )
-      .sort((a, b) => {
-        if (sort === "date") {
-          return new Date(a.date).getTime() - new Date(b.date).getTime()
-        } else if (sort === "price") {
-          return a.price - b.price
-        }
-        return 0
-      })
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const filteredEvents = mockEvents.filter(event => {
+    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
   
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
-      >
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Explore</h1>
-        <div className="mb-6 flex flex-col sm:flex-row gap-4">
+      <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search events..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white rounded-xl"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="text-gray-400" />
           <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
           >
-            <option value="date">Sort by Date</option>
-            <option value="price">Sort by Price</option>
+            <option value="all">All Categories</option>
+            <option value="conference">Conferences</option>
+            <option value="hackathon">Hackathons</option>
+            <option value="bootcamp">Bootcamps</option>
           </select>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEvents.map((event) => (
-            <motion.div
-              key={event.id}
-              whileHover={{ scale: 1.03 }}
-              className="bg-white rounded-lg shadow-md overflow-hidden"
-            >
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
-                <p className="text-gray-600 mb-4">{event.description}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-indigo-600 font-medium">${event.price}</span>
-                  <Link
-                    to={`/events/${event.id}`}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                  >
-                    Book Now
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-    )
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredEvents.map(event => (
+          <EventCard key={event.id} event={event} />
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export default EventDiscovery;
