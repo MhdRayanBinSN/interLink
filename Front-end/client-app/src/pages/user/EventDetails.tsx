@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Users, Clock, ArrowLeft, Share2, Heart, Globe, Ticket } from 'lucide-react';
 import { format } from 'date-fns';
-import { Event } from '../types';
+import { Event } from '../../types';
 
 const mockEvents: Event[] = [
     {

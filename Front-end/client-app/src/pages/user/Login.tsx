@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { useStore } from "../store"
+import { useStore } from "../../store"
 import { Mail, Lock, UserCircle } from 'lucide-react'
-import styles from '../styles/Login.module.css'
+import styles from "../../styles/Login.module.css" 
+
 
 const Login: React.FunctionComponent = () => {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const [role, setRole] = useState("user")
     const navigate = useNavigate()
     const { login } = useStore()
   
@@ -18,10 +18,12 @@ const Login: React.FunctionComponent = () => {
       const user = {
         id: Math.random().toString(36).substring(2, 9),
         name: email.split("@")[0],
-        role: role as "user" | "organizer",
+        email: email,
+        role: "user" // Default role
       }
+      localStorage.setItem('token', 'your-auth-token'); // Set token
       login(user)
-      navigate(role === "organizer" ? "/dashboard/organizer" : "/dashboard/user")
+      navigate("/dashboard/profile")
     }
   
     return (
@@ -72,16 +74,13 @@ const Login: React.FunctionComponent = () => {
               />
             </div>
 
-            <div className={styles.inputGroup}>
-              <UserCircle className={styles.icon} />
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className={styles.input}
+            <div className="flex items-center justify-between text-sm">
+              <Link 
+                to="/forgot-password"
+                className="text-indigo-600 hover:text-indigo-500 transition-colors"
               >
-                <option value="user">User</option>
-                <option value="organizer">Organizer</option>
-              </select>
+                Forgot password?
+              </Link>
             </div>
 
             <motion.button
@@ -92,6 +91,16 @@ const Login: React.FunctionComponent = () => {
             >
               Sign in
             </motion.button>
+
+            <p className="text-center text-sm text-gray-500 mt-4">
+              Don't have an account?{' '}
+              <Link 
+                to="/register"
+                className="text-indigo-600 hover:text-indigo-500 font-medium transition-colors"
+              >
+                Sign up
+              </Link>
+            </p>
           </form>
         </div>
       </motion.div>

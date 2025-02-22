@@ -1,86 +1,81 @@
 .loginContainer {
-    @apply min-h-screen flex items-center justify-center;
-    background: linear-gradient(135deg, #f6f8fb 0%, #e9edf3 100%);
+  @apply min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800;
+}
+
+.formCard {
+  @apply w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl;
+  backdrop-filter: blur(20px);
+  animation: fadeIn 0.5s ease-out;
+}
+
+.logoContainer {
+  @apply w-20 h-20 mx-auto mb-6 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center;
+  animation: pulseGlow 2s infinite;
+}
+
+.gradientText {
+  @apply font-bold;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.inputGroup {
+  @apply relative;
+}
+
+.input {
+  @apply w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-purple-500 focus:border-transparent transition-all duration-200;
+}
+
+.input:focus {
+  transform: translateY(-1px);
+}
+
+.icon {
+  @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400;
+}
+
+.submitButton {
+  @apply w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200;
+}
+
+.submitButton:hover {
+  transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
-  
-  .formCard {
-    @apply w-full max-w-md p-8 bg-white rounded-2xl shadow-2xl;
-    backdrop-filter: blur(20px);
-    animation: fadeIn 0.5s ease-out;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .logoContainer {
-    @apply w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    animation: pulseGlow 2s infinite;
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
   }
-  
-  .gradientText {
-    @apply font-bold;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+  70% {
+    box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
   }
-  
-  .inputGroup {
-    @apply relative mb-4;
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
   }
-  
-  .input {
-    @apply w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl transition-all duration-200;
-  }
-  
-  .input:focus {
-    @apply ring-2 ring-indigo-500 border-transparent;
-    transform: translateY(-1px);
-  }
-  
-  .icon {
-    @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400;
-  }
-  
-  .submitButton {
-    @apply w-full py-3 px-4 rounded-xl font-medium text-white transition-all duration-200;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  }
-  
-  .submitButton:hover {
-    @apply shadow-lg;
-    transform: translateY(-1px);
-  }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  @keyframes pulseGlow {
-    0% {
-      box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
-    }
-    70% {
-      box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
-    }
-  }
-  
-  /* Dark mode styles */
-  :global(.dark) .loginContainer {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-  }
-  
-  :global(.dark) .formCard {
-    @apply bg-gray-800;
-  }
-  
-  :global(.dark) .input {
-    @apply bg-gray-700 border-gray-600 text-white;
-  }
+}
+
+/* Dark mode styles */
+:global(.dark) .loginContainer {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+}
+
+:global(.dark) .formCard {
+  @apply bg-gray-800;
+}
+
+:global(.dark) .input {
+  @apply bg-gray-700 border-gray-600 text-white;
+}

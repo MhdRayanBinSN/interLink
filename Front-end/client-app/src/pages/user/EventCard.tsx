@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Users, Globe } from 'lucide-react';
 import { format } from 'date-fns';
-import { Event } from '../types';
+import { Event } from '../../types';
 import { Link } from 'react-router-dom';
 
 interface EventCardProps {

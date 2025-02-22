@@ -1,37 +1,31 @@
 import * as React from 'react';
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
-import { AnimatePresence } from "framer-motion"
-import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import EventDiscovery from './pages/EventDiscovery';
-import EventBooking from './pages/EventBooking';
-import UserDashboard from './pages/UserDashboard';
-import Login from './pages/Login';
-import OrganizerDashboard from './pages/OrganizerDashboard';
-import { EventDetails } from './pages/EventDetails';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import Navbar from './components/Navbar/Navbar';
+import Home from './pages/user/Home';
+import EventDiscovery from './pages/user/EventDiscovery';
+import Login from './pages/user/Login';
+import Register from './pages/user/Register';
+import { EventDetails } from './pages/user/EventDetails';
+import UserDashboard from './pages/user/dashboard/UserDashboard';
 
-//import Home from "./pages/Home"
-interface IAppProps {
-}
-
-const App: React.FunctionComponent<IAppProps> = () => {
+const App: React.FunctionComponent = () => {
   return (
-   
-   <Router>
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100 text-gray-900">
+    <Router>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100 text-gray-900">
         <Navbar />
         <AnimatePresence mode="wait">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/events" element={<EventDiscovery />} />
             <Route path="/events/:id" element={<EventDetails />} />
-            <Route path="/dashboard/user" element={<UserDashboard />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/dashboard/organizer" element={<OrganizerDashboard />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/dashboard/*" element={<UserDashboard />} />
           </Routes>
         </AnimatePresence>
       </div>
-   </Router>
+    </Router>
   );
 };
 

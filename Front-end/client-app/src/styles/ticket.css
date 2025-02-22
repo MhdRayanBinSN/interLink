@@ -1,0 +1,11 @@
+.ticket-card {
+  transition: transform 0.2s;
+}
+
+.ticket-card:hover {
+  transform: translateY(-4px);
+}
+
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+}

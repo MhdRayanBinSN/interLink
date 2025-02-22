@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { useStore } from "../store"
+import { useStore } from "../../store"
 import { Link } from "react-router-dom"
-import { Event } from '../types';
+import { Event } from '../../types';
 import { Search, Filter, Calendar, DollarSign, MapPin, Globe } from 'lucide-react';
-import { EventCard } from '../components/EventCard';
+import { EventCard } from './EventCard';
 
 
 interface IEventDiscoveryProps {
@@ -80,6 +80,7 @@ const EventDiscovery: React.FunctionComponent<IEventDiscoveryProps> = (props) =>
   });
 
   return (
+    
     <div className="container mx-auto px-4 py-8">
       <div className="flex gap-6">
         {/* Left Sidebar Filters */}
