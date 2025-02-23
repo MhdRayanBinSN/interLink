@@ -59,10 +59,10 @@ export const EventDetails: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="container mx-auto px-4 py-8"
+      className="container mx-auto px-4 py-8 "
     >
       <Link
-        to="/"
+        to="/events"
         className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 group"
       >
         <ArrowLeft className="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" />
