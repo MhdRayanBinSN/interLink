@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaBars, FaTimes, FaEdit, FaUsers, FaChartLine } from 'react-icons/fa';
 import { Routes, Route, Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import EventStatistics from './EventStatistics';
+import EditEvent from './EditEvent';
+import ManageParticipants from './ManageParticipants';
 
 
 interface IEventDashboardProps {}
@@ -103,9 +105,9 @@ const EventDashboard: React.FunctionComponent<IEventDashboardProps> = () => {
         <div className="p-6">
           <Routes>
             <Route path="statistics" element={<EventStatistics />} />
-            {/* 
+             
             <Route path="edit" element={<EditEvent />} />
-            <Route path="participants" element={<ManageEventParticipants />} />*/}
+            <Route path="participants" element={<ManageParticipants />} />
           </Routes>
         </div>
       </div>

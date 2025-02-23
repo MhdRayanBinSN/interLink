@@ -25,23 +25,10 @@ const OrganizerDashboard: React.FC = () => {
       <div className="bg-[#222839] border-b border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            <h1 className="text-xl font-semibold text-white">Event Management</h1>
+            <h1 className="text-xl font-semibold text-white">Control Room</h1>
             
             {/* Navigation Links */}
-            <nav className="flex items-center space-x-4">
-              <Link
-                to="/organizer/dashboard"
-                className={`flex items-center px-4 py-2 rounded-[10px] ${
-                  location.pathname === '/organizer/dashboard' 
-                    ? 'bg-[#7557e1] text-white' 
-                    : 'text-gray-300 hover:bg-[#7557e1]/10'
-                }`}
-              >
-                <FaChartLine className="mr-2" />
-                Dashboard
-              </Link>
-             
-            </nav>
+            
           </div>
 
           <div className="flex items-center space-x-4">

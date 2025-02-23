@@ -19,7 +19,7 @@ const EventsList: React.FC = () => {
       date: '2024-07-20',
       registeredCount: 200,
       revenue: 100000,
-      status: 'upcoming'
+      status: 'ongoing'
     },
     // ... more events
   ];
@@ -47,7 +47,7 @@ const EventsList: React.FC = () => {
                   <tr 
                     key={event.id} 
                     className="border-b border-gray-700 hover:bg-[#1d2132] cursor-pointer"
-                    onClick={() => navigate(`/organizer/dashboard/event/${event.id}`)} // Fixed path
+                    onClick={() => navigate(`/organizer/dashboard/event/${event.id}/statistics`)} // Fixed path
                   >
                     <td className="px-6 py-4 text-white">{event.title}</td>
                     <td className="px-6 py-4 text-gray-300">{event.date}</td>
