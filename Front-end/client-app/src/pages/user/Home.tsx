@@ -97,13 +97,15 @@ const Home: React.FunctionComponent = () => {
               transition={{ delay: 0.3 }}
               className="mt-10 flex flex-wrap justify-center gap-4"
             >
-              <Link
-                to="/events"
+              <a
+                href="/events"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-8 py-4 bg-[#7557e1] text-white rounded-full font-semibold hover:bg-opacity-90 transition-all flex items-center gap-2"
               >
                 Explore Events
                 <FaArrowRight />
-              </Link>
+              </a>
               <Link
                 to="/organizer"
                 className="px-8 py-4 border-2 border-[#d7ff42] text-[#d7ff42] rounded-full font-semibold hover:bg-[#d7ff42] hover:text-[#1e293b] transition-all flex items-center gap-2"

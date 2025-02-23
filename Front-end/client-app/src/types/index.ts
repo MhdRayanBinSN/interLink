@@ -1,4 +1,9 @@
 export interface Event {
+    requirements: any;
+    faqs: any;
+    features: any;
+    speakers: any;
+    schedule: any;
     id: string;
     title: string;
     description: string;

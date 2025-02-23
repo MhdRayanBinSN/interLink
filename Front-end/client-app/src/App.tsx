@@ -13,6 +13,7 @@ import OrganizerRegister from './pages/Organizer/OrganizerRegister';
 import OrganizerLogin from './pages/Organizer/OrganizerLogin';
 import OrganizerDashboard from './pages/Organizer/OrganizerDashboard';
 import EventDashboard from './pages/Organizer/components/EventDashboard';
+import  EventBooking  from './pages/user/EventBooking';
 
 const App: React.FC = () => {
   return (
@@ -30,6 +31,8 @@ const App: React.FC = () => {
           <Route element={<MainLayout />}>
             <Route path="/events" element={<EventDiscovery />} />
             <Route path="/events/:id" element={<EventDetails />} />
+            <Route path="/event/:id" element={<EventDetails />} />
+            <Route path="/event/:id/booking" element={<EventBooking />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard/*" element={<UserDashboard />} />

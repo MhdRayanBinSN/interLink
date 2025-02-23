@@ -29,8 +29,36 @@ const ManageParticipants: React.FunctionComponent<IManageParticipantsProps> = ()
     const mockParticipants: Participant[] = [
       {
         id: '1',
-        name: 'John Doe',
-        email: 'john@example.com',
+        name: 'Muhammed Rayan',
+        email: 'rayan6203@gmail.com',
+        phone: '+91 8590109268',
+        registrationDate: new Date('2024-02-20'),
+        attendanceStatus: 'not_marked',
+        ticketId: 'TICKET001',
+        attendeeType: 'student'
+      },
+      {
+        id: '2',
+        name: 'Subash M',
+        email: 'subu@gmail.com',
+        phone: '+91 987482210',
+        registrationDate: new Date('2024-02-20'),
+        attendanceStatus: 'not_marked',
+        ticketId: 'TICKET001',
+        attendeeType: 'student'
+      },{
+        id: '3',
+        name: 'Tobin Tom',
+        email: 'pala@yahoo.com',
+        phone: '+91 9876543210',
+        registrationDate: new Date('2024-02-20'),
+        attendanceStatus: 'not_marked',
+        ticketId: 'TICKET001',
+        attendeeType: 'student'
+      },{
+        id: '4',
+        name: 'Seban Sebastian',
+        email: 'vattakunnelseban@gmail.com',
         phone: '+91 9876543210',
         registrationDate: new Date('2024-02-20'),
         attendanceStatus: 'not_marked',

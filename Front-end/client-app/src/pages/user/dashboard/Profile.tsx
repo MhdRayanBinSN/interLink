@@ -1,11 +1,13 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { Github, Linkedin, MapPin, Mail, Phone, Calendar, Briefcase, Edit, Key } from 'lucide-react';
 
 interface UserProfileData {
   firstName: string;
   lastName: string;
   email: string;
   phoneNumber: string;
-  role: 'Student' | 'Educator' | 'Professional';
+  role: string;
   specialization: string;
   organization: string;
   githubProfile?: string;
@@ -16,7 +18,6 @@ interface UserProfileData {
 }
 
 const Profile: React.FC = () => {
-  // Tech-focused dummy data
   const profileData: UserProfileData = {
     firstName: "Muhammed",
     lastName: "Rayan Bin SayedMohammed Noushad",
@@ -32,87 +33,94 @@ const Profile: React.FC = () => {
     Domain: "System Architect"
   };
 
+  const InfoItem = ({ icon: Icon, label, value }: { icon: any, label: string, value: string }) => (
+    <div className="flex items-center gap-3 text-gray-300">
+      <Icon className="w-5 h-5 text-[#7557e1]" />
+      <div>
+        <p className="text-sm text-gray-400">{label}</p>
+        <p className="mt-0.5">{value}</p>
+      </div>
+    </div>
+  );
+
+  const SocialLink = ({ icon: Icon, url }: { icon: any, url: string }) => (
+    <motion.a
+      whileHover={{ scale: 1.1 }}
+      href={`https://${url}`}
+      target="_blank"
+      className="p-2 rounded-lg bg-[#1d2132] text-gray-400 hover:text-white transition-colors"
+    >
+      <Icon className="w-5 h-5" />
+    </motion.a>
+  );
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow">
-        {/* Header Section */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-6">
-            <img 
-              src={profileData.profileImage} 
-              alt="Profile" 
-              className="w-24 h-24 rounded-full border-2 border-blue-500"
-            />
-            <div className="flex-1">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    {`${profileData.firstName} ${profileData.lastName}`}
-                  </h1>
-                  <p className="text-blue-600 font-medium">{profileData.role}</p>
-                  <p className="text-gray-500">{profileData.specialization}</p>
+    <div className="min-h-screen bg-[#1d2132] py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="bg-[#222839] rounded-xl overflow-hidden border border-gray-700/50 shadow-xl">
+          {/* Header Section */}
+          <div className="relative h-32 bg-[#1d2132]">
+            <div className="absolute -bottom-16 left-6">
+              <div className="relative">
+                <div className="w-32 h-32 rounded-xl border-4 border-[#222839] bg-[#1d2132] flex items-center justify-center">
+                  <span className="text-4xl font-bold text-[#7557e1]">{profileData.firstName[0]}</span>
                 </div>
-                <div className="flex gap-2">
-                  {profileData.githubProfile && (
-                    <a href={`https://${profileData.githubProfile}`} 
-                       target="_blank" 
-                       className="text-gray-600 hover:text-gray-900">
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                      </svg>
-                    </a>
-                  )}
-                  {profileData.linkedinProfile && (
-                    <a href={`https://${profileData.linkedinProfile}`} 
-                       target="_blank" 
-                       className="text-gray-600 hover:text-gray-900">
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                      </svg>
-                    </a>
-                  )}
-                </div>
+                <button className="absolute -bottom-2 -right-2 p-2 rounded-full bg-[#7557e1] text-white hover:bg-[#6345d0] transition-colors">
+                  <Edit className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Profile Details */}
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Professional Information */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-900">Professional Information</h2>
-              
+          <div className="mt-20 p-6">
+            {/* Profile Header */}
+            <div className="flex justify-between items-start">
               <div>
-                <label className="block text-sm font-medium text-gray-600">Organization</label>
-                <p className="mt-1 text-gray-900">{profileData.organization}</p>
+                <h1 className="text-2xl font-bold text-white">{`${profileData.firstName} ${profileData.lastName}`}</h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="px-3 py-1 text-sm bg-[#7557e1]/10 text-[#7557e1] rounded-full border border-[#7557e1]/20">
+                    {profileData.role}
+                  </span>
+                  <span className="px-3 py-1 text-sm bg-[#d7ff42]/10 text-[#d7ff42] rounded-full border border-[#d7ff42]/20">
+                    {profileData.Domain}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                {profileData.githubProfile && <SocialLink icon={Github} url={profileData.githubProfile} />}
+                {profileData.linkedinProfile && <SocialLink icon={Linkedin} url={profileData.linkedinProfile} />}
+              </div>
+            </div>
+
+            {/* Info Sections */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold text-[#d7ff42]">Professional Information</h2>
+                <div className="space-y-4">
+                  <InfoItem icon={Briefcase} label="Organization" value={profileData.organization} />
+                  <InfoItem icon={MapPin} label="Specialization" value={profileData.specialization} />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Email</label>
-                <p className="mt-1 text-gray-900">{profileData.email}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Domain</label>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {profileData.Domain}
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold text-[#d7ff42]">Contact Information</h2>
+                <div className="space-y-4">
+                  <InfoItem icon={Mail} label="Email" value={profileData.email} />
+                  <InfoItem icon={Phone} label="Phone" value={profileData.phoneNumber} />
+                  <InfoItem icon={Calendar} label="Member Since" value={profileData.memberSince} />
                 </div>
               </div>
             </div>
 
-           
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4 mt-6">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              Edit Profile
-            </button>
-            <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-              Change Password
-            </button>
+            {/* Action Buttons */}
+            <div className="flex gap-4 mt-8">
+              <button className="px-6 py-2.5 bg-[#7557e1] text-white rounded-lg font-medium hover:opacity-90 transition-all flex items-center gap-2">
+                <Edit className="w-4 h-4" />Edit Profile
+              </button>
+              <button className="px-6 py-2.5 bg-[#1d2132] text-gray-300 rounded-lg font-medium hover:bg-[#1d2132]/80 transition-all flex items-center gap-2">
+                <Key className="w-4 h-4" />Change Password
+              </button>
+            </div>
           </div>
         </div>
       </div>

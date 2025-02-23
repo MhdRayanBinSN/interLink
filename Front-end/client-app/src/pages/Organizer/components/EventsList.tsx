@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Calendar, Users, DollarSign, Tag, MapPin, Clock } from 'lucide-react';
 
 const EventsList: React.FC = () => {
   const navigate = useNavigate();
@@ -8,7 +10,7 @@ const EventsList: React.FC = () => {
     {
       id: '1',
       title: 'React Summit 2024',
-      date: '2024-06-15',
+      date: '2025-07-30',
       registeredCount: 750,
       revenue: 450000,
       status: 'upcoming'

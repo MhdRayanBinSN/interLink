@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'qrcode.react';
 import { Link } from 'react-router-dom';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import {TicketPDF} from './TicketPDF';
+import { Calendar, Clock, MapPin, Download, X, ExternalLink } from 'lucide-react';
+import { TicketPDF } from './TicketPDF';
 
 interface TicketData {
   id: string;
@@ -18,6 +19,146 @@ interface TicketData {
   eventId: string;
   status: 'upcoming' | 'completed' | 'cancelled';
 }
+
+const TicketCard: React.FC<{ ticket: TicketData; onClick: () => void }> = ({ ticket, onClick }) => (
+  <motion.div
+    whileHover={{ scale: 1.02 }}
+    className="bg-[#222839] rounded-xl border border-gray-700/50 overflow-hidden shadow-lg"
+  >
+    <div className="p-6">
+      <div className="flex justify-between items-start mb-4">
+        <div className={`px-3 py-1 text-xs rounded-full ${
+          ticket.status === 'upcoming' ? 'bg-[#d7ff42]/10 text-[#d7ff42] border border-[#d7ff42]/20' :
+          ticket.status === 'completed' ? 'bg-gray-500/10 text-gray-400 border border-gray-500/20' : 
+          'bg-red-500/10 text-red-400 border border-red-500/20'
+        }`}>
+          {ticket.status.toUpperCase()}
+        </div>
+        <span className="text-[#d7ff42] font-medium">₹{ticket.price}</span>
+      </div>
+      
+      <h3 className="text-xl font-semibold mb-4 text-white">{ticket.eventName}</h3>
+      
+      <div className="space-y-2 mb-6 text-gray-400">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-[#7557e1]" />
+          <span>{new Date(ticket.eventDate).toLocaleDateString()}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-[#7557e1]" />
+          <span>{ticket.eventTime}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#7557e1]" />
+          <span>{ticket.eventLocation}</span>
+        </div>
+      </div>
+
+      <button
+        onClick={onClick}
+        className="w-full bg-[#7557e1] text-white py-2.5 rounded-lg hover:opacity-90 transition-all"
+      >
+        View Ticket
+      </button>
+    </div>
+  </motion.div>
+);
+
+const TicketModal: React.FC<{ ticket: TicketData; onClose: () => void }> = ({ ticket, onClose }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    onClick={onClose}
+  >
+    <motion.div
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.9, opacity: 0 }}
+      className="bg-[#222839] rounded-xl p-6 max-w-2xl w-full border border-gray-700/50 shadow-xl"
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white">{ticket.eventName}</h2>
+          <div className={`mt-2 inline-block px-3 py-1 text-xs rounded-full ${
+            ticket.status === 'upcoming' ? 'bg-[#d7ff42]/10 text-[#d7ff42] border border-[#d7ff42]/20' :
+            ticket.status === 'completed' ? 'bg-gray-500/10 text-gray-400 border border-gray-500/20' : 
+            'bg-red-500/10 text-red-400 border border-red-500/20'
+          }`}>
+            {ticket.status.toUpperCase()}
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-[#1d2132] rounded-lg transition-colors"
+        >
+          <X className="w-5 h-5 text-gray-400" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-[#d7ff42]">Event Details</h3>
+            <div className="space-y-3 text-gray-300">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#7557e1]" />
+                <span>{new Date(ticket.eventDate).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#7557e1]" />
+                <span>{ticket.eventTime}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#7557e1]" />
+                <span>{ticket.eventLocation}</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-[#d7ff42]">Ticket Information</h3>
+            <div className="space-y-2 text-gray-300">
+              <p>Ticket Type: {ticket.ticketType}</p>
+              <p>Ticket #: {ticket.ticketNumber}</p>
+              <p>Purchase Date: {new Date(ticket.purchaseDate).toLocaleDateString()}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center justify-center p-4 bg-white rounded-lg">
+          <QRCode 
+            value={ticket.ticketNumber}
+            size={200}
+            level="H"
+            includeMargin={true}
+          />
+          <p className="text-sm text-gray-500 mt-2">Scan for verification</p>
+        </div>
+      </div>
+
+      <div className="flex justify-between mt-6">
+        <Link
+          to={`/events/${ticket.eventId}`}
+          className="px-4 py-2.5 bg-[#1d2132] text-gray-300 rounded-lg hover:text-white transition-colors flex items-center gap-2"
+        >
+          <ExternalLink className="w-4 h-4" />
+          View Event
+        </Link>
+        <PDFDownloadLink
+          document={<TicketPDF ticket={{ ...ticket, qrData: ticket.ticketNumber }} />}
+          fileName={`ticket-${ticket.ticketNumber}.pdf`}
+          className="px-4 py-2.5 bg-[#7557e1] text-white rounded-lg hover:opacity-90 transition-colors flex items-center gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Download PDF
+        </PDFDownloadLink>
+      </div>
+    </motion.div>
+  </motion.div>
+);
 
 const Ticket: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
@@ -41,121 +182,25 @@ const Ticket: React.FC = () => {
   ];
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">My Tickets</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6 text-white">My Tickets</h1>
       
-      {/* Ticket List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tickets.map((ticket) => (
-          <motion.div
+          <TicketCard
             key={ticket.id}
-            className="bg-white rounded-lg shadow-md overflow-hidden"
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="p-4">
-              <div className={`text-sm font-semibold mb-2 ${
-                ticket.status === 'upcoming' ? 'text-green-600' :
-                ticket.status === 'completed' ? 'text-gray-600' : 'text-red-600'
-              }`}>
-                {ticket.status.toUpperCase()}
-              </div>
-              <h3 className="text-xl font-semibold mb-2">{ticket.eventName}</h3>
-              <div className="text-gray-600 mb-4">
-                <p>{new Date(ticket.eventDate).toLocaleDateString()}</p>
-                <p>{ticket.eventTime}</p>
-                <p>{ticket.eventLocation}</p>
-              </div>
-              <button
-                onClick={() => setSelectedTicket(ticket)}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Show Ticket
-              </button>
-            </div>
-          </motion.div>
+            ticket={ticket}
+            onClick={() => setSelectedTicket(ticket)}
+          />
         ))}
       </div>
 
-      {/* Ticket Detail Modal */}
       <AnimatePresence>
         {selectedTicket && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            onClick={() => setSelectedTicket(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold">{selectedTicket.eventName}</h2>
-                <button
-                  onClick={() => setSelectedTicket(null)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold mb-2">Event Details</h3>
-                    <p className="text-gray-600">Date: {new Date(selectedTicket.eventDate).toLocaleDateString()}</p>
-                    <p className="text-gray-600">Time: {selectedTicket.eventTime}</p>
-                    <p className="text-gray-600">Location: {selectedTicket.eventLocation}</p>
-                  </div>
-
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold mb-2">Ticket Information</h3>
-                    <p className="text-gray-600">Ticket Type: {selectedTicket.ticketType}</p>
-                    <p className="text-gray-600">Ticket #: {selectedTicket.ticketNumber}</p>
-                    <p className="text-gray-600">Purchase Date: {new Date(selectedTicket.purchaseDate).toLocaleDateString()}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center justify-center">
-                  <QRCode 
-                    value={selectedTicket.ticketNumber}
-                    size={200}
-                    level="H"
-                    includeMargin={true}
-                  />
-                  <p className="text-sm text-gray-500 mt-2">Scan for verification</p>
-                </div>
-              </div>
-
-              <div className="flex justify-between mt-6">
-                <Link
-                  to={`/events/${selectedTicket.eventId}`}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  View Event Details
-                </Link>
-                <PDFDownloadLink
-                  document={
-                    <TicketPDF
-                      ticket={{
-                        ...selectedTicket,
-                        qrData: selectedTicket.ticketNumber // Add qrData property
-                      }}
-                    />
-                  }
-                  fileName={`ticket-${selectedTicket.ticketNumber}.pdf`}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                Download
-                </PDFDownloadLink>
-              </div>
-            </motion.div>
-          </motion.div>
+          <TicketModal
+            ticket={selectedTicket}
+            onClose={() => setSelectedTicket(null)}
+          />
         )}
       </AnimatePresence>
     </div>
