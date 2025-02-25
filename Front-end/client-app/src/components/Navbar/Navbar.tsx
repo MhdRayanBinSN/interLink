@@ -80,7 +80,7 @@ const Navbar: React.FunctionComponent = () => {
                                     Profile
                                 </motion.div>
                             </NavLink>
-                            <NavLink to="/tickets">
+                            <NavLink to="/dashboard/tickets">
                                 <motion.div
                                     whileHover={{ x: 4 }}
                                     className="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:bg-white/5 hover:text-[#d7ff42] transition-colors group"

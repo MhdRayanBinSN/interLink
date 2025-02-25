@@ -106,13 +106,15 @@ const Home: React.FunctionComponent = () => {
                 Explore Events
                 <FaArrowRight />
               </a>
-              <Link
-                to="/organizer"
+              <a
+                href="/organizer"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-8 py-4 border-2 border-[#d7ff42] text-[#d7ff42] rounded-full font-semibold hover:bg-[#d7ff42] hover:text-[#1e293b] transition-all flex items-center gap-2"
               >
                 Become an Organizer
                 <FaRocket />
-              </Link>
+              </a>
             </motion.div>
           </div>
         </div>

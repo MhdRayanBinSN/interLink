@@ -190,11 +190,12 @@ const EventDiscovery: React.FunctionComponent<IEventDiscoveryProps> = (props) =>
             {/* Search Bar */}
             <div className="mb-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#7557e1]" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white" />
                 <input
                   type="text"
                   placeholder="Search events..."
-                  className="w-full pl-9 pr-3 py-2.5 bg-[#222839]/80 backdrop-blur-sm border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:border-[#7557e1] focus:ring-1 focus:ring-[#7557e1] transition-colors"
+                  className="w-full pl-9 pr-3 py-2.5 bg-[#222839]/80 backdrop-blur-sm border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:border-[#7557e1] focus:ring-1 focus:ring-[#7557e1] transition-colors
+                  rounded-xl"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
