@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaBuilding, FaPhone, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaBuilding, FaPhone, FaEye, FaEyeSlash, FaLink } from 'react-icons/fa';
+import axios from 'axios';
+import { serverUrl } from '../../helpers/Constant';
 
-interface IOrganizerRegisterProps {}
-
-const OrganizerRegister: React.FunctionComponent<IOrganizerRegisterProps> = () => {
+const OrganizerRegister: React.FC = () => {
   const [formData, setFormData] = useState({
     organizationName: '',
     organizationType: 'educational',
@@ -15,16 +15,63 @@ const OrganizerRegister: React.FunctionComponent<IOrganizerRegisterProps> = () =
     password: '',
     confirmPassword: '',
     website: '',
-    description: '',
     userId: ''
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Add your registration logic here
-    console.log('Form submitted:', formData);
+    setLoading(true);
+    setError(null);
+
+    // Basic validation
+    if (!formData.organizationName || !formData.email || !formData.password || !formData.userId) {
+      setError('Please fill in all required fields');
+      setLoading(false);
+      return;
+    }
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords don't match");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Note: Remove the extra 'api' in the URL
+      const response = await axios.post(`${serverUrl}/organizer/register`, {
+        organizationName: formData.organizationName,
+        organizationType: formData.organizationType,
+        contactPerson: formData.contactPerson,
+        email: formData.email.toLowerCase(),
+        phone: formData.phone,
+        password: formData.password,
+        userId: formData.userId,
+        website: formData.website || undefined
+      });
+
+      if (response.data.success) {
+        setSuccess(true);
+        console.log('Registration successful:', response.data);
+        setTimeout(() => {
+          window.location.href = '/organizer/login';
+        }, 2000);
+      }
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      setError(
+        err.response?.data?.message || 
+        'Registration failed. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -93,10 +140,12 @@ const OrganizerRegister: React.FunctionComponent<IOrganizerRegisterProps> = () =
                   className="w-full px-4 py-3 border border-gray-700 rounded-[10px] bg-[#1d2132] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent transition-all"
                   required
                 >
+                 
                   <option value="educational">Educational Institution</option>
                   <option value="tech-company">Tech Company</option>
                   <option value="non-profit">Non-Profit Organization</option>
                   <option value="community">Tech Community</option>
+                  <option value="individual">Individual</option>
                 </select>
               </div>
 
@@ -104,14 +153,17 @@ const OrganizerRegister: React.FunctionComponent<IOrganizerRegisterProps> = () =
                 <label className="block text-sm font-medium text-gray-200 mb-2">
                   Website
                 </label>
-                <input
-                  type="url"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-[10px] shadow-sm placeholder-gray-400 bg-[#1d2132] text-white focus:outline-none focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
-                  placeholder="https://"
-                />
+                <div className="relative">
+                  <input
+                    type="url"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleChange}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-[10px] shadow-sm placeholder-gray-400 bg-[#1d2132] text-white focus:outline-none focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+                    placeholder="https://"
+                  />
+                  <FaLink className="absolute right-3 top-2.5 text-[#7557e1]" />
+                </div>
               </div>
             </div>
           </motion.div>
@@ -279,6 +331,18 @@ const OrganizerRegister: React.FunctionComponent<IOrganizerRegisterProps> = () =
             </button>
           </motion.div>
         </form>
+
+        {error && (
+          <div className="text-red-500 text-center mt-4">
+            {error}
+          </div>
+        )}
+
+        {loading && (
+          <div className="text-white text-center mt-4">
+            Processing registration...
+          </div>
+        )}
 
         {/* Sign In Link */}
         <div className="text-center">
