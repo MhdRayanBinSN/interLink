@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaUser, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import axios from 'axios';
+import { serverUrl } from '../../helpers/Constant';
 
 interface IOrganizerLoginProps {}
 
@@ -12,22 +14,58 @@ const OrganizerLogin: React.FunctionComponent<IOrganizerLoginProps> = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login attempt:', formData);
-    
-    // Mock successful login
-    if (formData.userId && formData.password) {
-      // You would typically verify credentials with your backend here
-      
-      // Redirect to dashboard after successful login
-      navigate('/organizer/dashboard');
+    setError(null);
+    setLoading(true);
+
+    // Validate input
+    if (!formData.userId || !formData.password) {
+        setError('Please fill in all fields');
+        setLoading(false);
+        return;
+    }
+
+    try {
+        const response = await axios.post(`${serverUrl}/organizer/login`, {
+            userId: formData.userId,
+            password: formData.password
+        });
+
+        console.log('Login response:', response.data); // Debug response
+
+        if (response.data.success && response.data.accessToken) {
+            // Store the token
+            localStorage.setItem('token', response.data.accessToken);
+            localStorage.setItem('userId', formData.userId);
+
+            // Clear form
+            setFormData({
+                userId: '',
+                password: ''
+            });
+
+            // Redirect
+            navigate('/organizer/dashboard', { replace: true });
+        } else {
+            setError('Invalid response from server');
+        }
+    } catch (err: any) {
+        console.error('Login error:', err);
+        setError(
+            err.response?.data?.message || 
+            'Login failed. Please check your credentials.'
+        );
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -56,6 +94,18 @@ const OrganizerLogin: React.FunctionComponent<IOrganizerLoginProps> = () => {
           transition={{ delay: 0.2 }}
         >
           <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                {error}
+              </div>
+            )}
+            
+            {loading && (
+              <div className="text-center text-gray-300">
+                Logging in...
+              </div>
+            )}
+
             {/* User ID Field */}
             <div>
               <label className="block text-sm font-medium text-gray-200 mb-2">
@@ -123,9 +173,12 @@ const OrganizerLogin: React.FunctionComponent<IOrganizerLoginProps> = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full py-3 px-4 bg-[#d7ff42] text-[#1d2132] rounded-[10px] font-semibold hover:bg-opacity-90 transform hover:scale-[1.02] transition-all duration-200"
+              disabled={loading}
+              className={`w-full py-3 px-4 bg-[#d7ff42] text-[#1d2132] rounded-[10px] font-semibold 
+                ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90 transform hover:scale-[1.02]'} 
+                transition-all duration-200`}
             >
-              Sign In
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
         </motion.div>

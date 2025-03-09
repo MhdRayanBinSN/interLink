@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { FaPlus, FaTrash, FaImage, FaCloudUploadAlt, FaCalendarPlus, FaArrowRight, FaArrowLeft } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaImage, FaCloudUploadAlt, FaCalendarPlus, FaArrowRight, FaArrowLeft, FaLocationArrow, FaDirections } from 'react-icons/fa';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import RichTextEditorWrapper from './RichTextEditorWrapper';
 
-interface ICreateEventProps {}
+
+
+type FileList = {
+  item(index: number): File | null;
+  [index: number]: File;
+  length: number;
+};
 
 type EventFormData = {
   // Basic Details
@@ -43,6 +50,8 @@ type EventFormData = {
     name: string;
     bio: string;
     topic: string;
+    designation?: string;
+    organization?: string;
   }[];
   agenda?: string;
   resources?: FileList;
@@ -64,6 +73,32 @@ type EventFormData = {
     ifscCode: string;
     upiId?: string;
   };
+
+  // Language options
+  languages: string[];
+  
+  // Detailed Schedule
+  schedules: {
+    time: string;
+    title: string;
+    description: string;
+  }[];
+  
+  // Featured Speakers
+  featuredSpeakers: {
+    name: string;
+    designation: string;
+    organization: string;
+    image?: FileList;
+    bio: string;
+    socialLinks: {
+      platform: string;
+      url: string;
+    }[];
+  }[];
+  
+  // Rich text description
+  aboutEvent: string;
 };
 
 const FORM_STEPS = [
@@ -73,20 +108,59 @@ const FORM_STEPS = [
   { id: 4, title: 'Schedule' },
   { id: 5, title: 'Participation' },
   { id: 6, title: 'Ticketing' },
-  { id: 7, title: 'Additional Info' },
-  { id: 8, title: 'Technical Details' },
+  { id: 7, title: 'About and Speaker Details' }, // Now this is the last step
 ];
 
-const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
+const CreateEvent: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const { register, control, handleSubmit, watch, formState: { errors }, trigger } = useForm<EventFormData>();
-  const { fields, append, remove } = useFieldArray({
+  const { 
+    register, 
+    control, 
+    handleSubmit, 
+    watch, 
+    setValue,
+    trigger,
+    formState: { errors } 
+  } = useForm<EventFormData>({
+    mode: 'onChange',
+    defaultValues: {
+      startDateTime: new Date(),
+      endDateTime: new Date(),
+      registrationDeadline: new Date(),
+      mode: 'offline',
+      entryType: 'free',
+      status: 'draft',
+      languages: [],
+      schedules: [],
+      speakers: [],
+      socialLinks: [],
+      featuredSpeakers: []
+    }
+  });
+
+  const { 
+    fields: scheduleFields, 
+    append: appendSchedule, 
+    remove: removeSchedule 
+  } = useFieldArray({
+    control,
+    name: "schedules"
+  });
+
+  const { 
+    fields: speakerFields, 
+    append: appendSpeaker, 
+    remove: removeSpeaker 
+  } = useFieldArray({
     control,
     name: "speakers"
   });
 
-  // Add this with your other useFieldArray calls
-  const { fields: socialLinkFields, append: appendSocialLink, remove: removeSocialLink } = useFieldArray({
+  const { 
+    fields: socialLinkFields, 
+    append: appendSocialLink, 
+    remove: removeSocialLink 
+  } = useFieldArray({
     control,
     name: "socialLinks"
   });
@@ -96,21 +170,47 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
 
   const onSubmit = async (data: EventFormData) => {
     try {
-      // Mock API call
       console.log('Form data:', data);
-      // Show success message
+      // TODO: Add your API call here
+      
+      // Show better success message
+      alert(`Event "${data.title}" created successfully! Your event has been submitted and is now ${data.status}.`);
+      
+      // Optionally, redirect to events page
+      // navigate('/organizer/events');
     } catch (error) {
-      // Show error message
+      console.error('Error creating event:', error);
+      alert('Failed to create event. Please check your information and try again.');
     }
   };
 
   const nextStep = async () => {
+    console.log('Current step:', currentStep);
     const fields = getFieldsForStep(currentStep);
-    const isValid = await trigger(fields as (keyof EventFormData)[]);
-    if (isValid) {
+    console.log('Fields to validate:', fields);
+    
+    // Skip validation for steps with no required fields
+    if (fields.length === 0) {
       setCurrentStep(prev => Math.min(prev + 1, FORM_STEPS.length));
+      return;
+    }
+    
+    try {
+      const isValid = await trigger(fields);
+      console.log('Validation result:', isValid, 'Errors:', Object.keys(errors));
+      
+      if (isValid) {
+        setCurrentStep(prev => Math.min(prev + 1, FORM_STEPS.length));
+      } else {
+        // Show what fields are failing validation
+        console.log('Failed fields:', Object.keys(errors));
+        alert('Please fix the highlighted errors before proceeding');
+      }
+    } catch (error) {
+      console.error('Step navigation error:', error);
     }
   };
+  
 
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
@@ -119,18 +219,28 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
   const getFieldsForStep = (step: number): (keyof EventFormData)[] => {
     switch (step) {
       case 1:
-        return ['title', 'eventType', 'category', 'description'];
+        return ['title', 'eventType', 'category'];
       case 2:
-        return ['bannerImage', 'eventWebsite', 'socialLinks'];
-      // ... add cases for other steps
+        return ['bannerImage', 'eventWebsite'];
+      case 3:
+        return ['organizerName', 'organizerEmail', 'organizerPhone'];
+      case 4:
+        return ['startDateTime', 'endDateTime', 'mode'];
+      case 5:
+        return ['targetAudience', 'maxParticipants'];
+      case 6:
+        return ['entryType'];
+      case 7:
+        return ['speakers', 'aboutEvent', 'status']; // Added 'status' here
       default:
         return [];
     }
   };
 
-  function setValue(arg0: string, date: Date): void {
-    throw new Error('Function not implemented.');
-  }
+  useEffect(() => {
+    console.log('Current step:', currentStep);
+    console.log('Form values:', watch());
+  }, [currentStep]);
 
   return (
     <div className="max-w-4xl mx-auto py-8">
@@ -167,7 +277,7 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
                   Event Title
                 </label>
                 <input
-                  {...register('title', { required: 'Event title is required' })}
+                  {...register('title',{/*  { required: 'Event title is required' }*/})}
                   className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
                 />
                 {errors.title && (
@@ -181,7 +291,7 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
                     Event Type
                   </label>
                   <select
-                    {...register('eventType', { required: 'Event type is required' })}
+                    {...register('eventType', {/* { required: 'Event type is required' }*/})}
                     className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
                   >
                     <option value="">Select Type</option>
@@ -197,7 +307,7 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
                     Category
                   </label>
                   <select
-                    {...register('category', { required: 'Category is required' })}
+                    {...register('category', {/* { required: 'Category is required' }*/})}
                     className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
                   >
                     <option value="">Select Category</option>
@@ -209,18 +319,7 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Description
-                </label>
-                <textarea
-                  {...register('description', { required: 'Description is required' })}
-                  rows={4}
-                  className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
-                />
-              </div>
-
-              {/* Continue with other sections following the same pattern */}
+           
             </div>
           </motion.div>
         )}
@@ -392,12 +491,15 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
                     {...register('organizerEmail', {
                       required: 'Email is required',
                       pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                         message: "Invalid email address"
                       }
                     })}
                     className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
                   />
+                  {errors.organizerEmail && (
+                    <p className="mt-1 text-sm text-red-500">{errors.organizerEmail.message}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-2">
@@ -429,12 +531,18 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
                   <label className="block text-sm font-medium text-gray-200 mb-2">
                     Start Date & Time
                   </label>
-                  <DatePicker
-                    selected={watch('startDateTime')}
-                    onChange={(date: Date | null) => date && setValue('startDateTime', date)}
-                    showTimeSelect
-                    dateFormat="MMMM d, yyyy h:mm aa"
-                    className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+                  <Controller
+                    control={control}
+                    name="startDateTime"
+                    render={({ field: { onChange, value } }) => (
+                      <DatePicker
+                        selected={value}
+                        onChange={onChange}
+                        showTimeSelect
+                        dateFormat="MMMM d, yyyy h:mm aa"
+                        className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white"
+                      />
+                    )}
                   />
                 </div>
                 <div>
@@ -471,14 +579,102 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
               {(eventMode === 'offline' || eventMode === 'hybrid') && (
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-2">
-                    Venue
+                    Location
                   </label>
                   <input
-                    {...register('venue', { required: 'Venue is required for offline events' })}
+                    {...register('venue', { required: 'Location is required for offline events' })}
+                    placeholder="Enter full venue address"
                     className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
                   />
+                  
+                  {/* Google Maps Direction Link - Fixed implementation */}
+                  <div className="mt-2 flex items-center">
+                    {watch('venue') ? (
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(watch('venue') || '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-[#d7ff42] hover:underline flex items-center"
+                      >
+                        <span className="mr-1 text-lg"><FaLocationArrow/></span>
+                        Get Directions on Google Maps
+                      </a>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">
+                        Enter a location to see map directions
+                      </span>
+                    )}
+                  </div>
+                  
+                  {errors.venue && (
+                    <p className="mt-1 text-sm text-red-500">{errors.venue.message}</p>
+                  )}
                 </div>
               )}
+            </div>
+
+            {/* Languages */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-200 mb-2">
+                Event Languages
+              </label>
+              <select
+                multiple
+                {...register('languages')}
+                className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+              >
+                <option value="english">English</option>
+                <option value="hindi">Hindi</option>
+                <option value="malayalam">Malayalam</option>
+                {/* Add more languages as needed */}
+              </select>
+            </div>
+
+            {/* Detailed Schedule */}
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <label className="block text-sm font-medium text-gray-200">
+                  Event Schedule
+                </label>
+                <button
+                  type="button"
+                  onClick={() => appendSchedule({ time: '', title: '', description: '' })}
+                  className="flex items-center text-[#d7ff42] hover:text-opacity-80"
+                >
+                  <FaPlus className="mr-2" />
+                  Add Schedule Item
+                </button>
+              </div>
+              
+              {scheduleFields.map((field, index) => (
+                <div key={field.id} className="p-4 bg-[#1d2132] rounded-[10px] mb-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <input
+                      type="time"
+                      {...register(`schedules.${index}.time` as const)}
+                      className="w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white"
+                    />
+                    <input
+                      {...register(`schedules.${index}.title` as const)}
+                      placeholder="Session Title"
+                      className="col-span-2 w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white"
+                    />
+                  </div>
+                  <textarea
+                    {...register(`schedules.${index}.description` as const)}
+                    placeholder="Session Description"
+                    className="mt-2 w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white"
+                    rows={2}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeSchedule(index)}
+                    className="mt-2 text-red-500 hover:text-red-400"
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              ))}
             </div>
           </motion.div>
         )}
@@ -546,46 +742,54 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-200">Entry Type</label>
-                <div className="flex space-x-4">
-                  {['free', 'paid'].map((type) => (
-                    <label key={type} className="flex items-center">
-                      <input
-                        type="radio"
-                        {...register('entryType')}
-                        value={type}
-                        className="text-[#d7ff42] bg-[#1d2132] border-gray-700 focus:ring-[#d7ff42]"
-                      />
-                      <span className="ml-2 text-gray-200 capitalize">{type}</span>
-                    </label>
-                  ))}
-                </div>
+                <Controller
+                  control={control}
+                  name="entryType"
+                  render={({ field }) => (
+                    <div className="flex space-x-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...field}
+                          value="free"
+                          checked={field.value === 'free'}
+                          className="text-[#d7ff42] bg-[#1d2132] border-gray-700 focus:ring-[#d7ff42]"
+                        />
+                        <span className="ml-2 text-gray-200">Free</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...field}
+                          value="paid"
+                          checked={field.value === 'paid'}
+                          className="text-[#d7ff42] bg-[#1d2132] border-gray-700 focus:ring-[#d7ff42]"
+                        />
+                        <span className="ml-2 text-gray-200">Paid</span>
+                      </label>
+                    </div>
+                  )}
+                />
               </div>
 
-              {entryType === 'paid' && (
+              {watch('entryType') === 'paid' && (
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-200 mb-2">
                       Ticket Price (₹)
                     </label>
-                    <input
-                      type="number"
-                      {...register('ticketPrice', { required: 'Ticket price is required for paid events' })}
-                      className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+                    <Controller
+                      control={control}
+                      name="ticketPrice"
+                      rules={{ required: 'Ticket price is required for paid events' }}
+                      render={({ field }) => (
+                        <input
+                          type="number"
+                          {...field}
+                          className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+                        />
+                      )}
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-200 mb-2">
-                      Payment Gateway
-                    </label>
-                    <select
-                      {...register('paymentGateway')}
-                      className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
-                    >
-                      <option value="">Select Gateway</option>
-                      <option value="razorpay">Razorpay</option>
-                      <option value="stripe">Stripe</option>
-                      <option value="paypal">PayPal</option>
-                    </select>
                   </div>
                 </div>
               )}
@@ -593,80 +797,158 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
           </motion.div>
         )}
 
-        {/* Step 7: Additional Info */}
-        {currentStep === 7 && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="bg-[#222839] p-6 rounded-[10px] border border-gray-700"
+        {/* Step 7: About and Speaker Details - Now including status */}
+{currentStep === 7 && (
+  <motion.div
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: -20 }}
+    className="bg-[#222839] p-6 rounded-[10px] border border-gray-700"
+  >
+    <h2 className="text-xl font-semibold text-white mb-6">About and Speaker Details</h2>
+    <div className="space-y-6">
+      {/* Speakers - Enhanced with position and photo */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <label className="block text-sm font-medium text-gray-200">
+            Speakers
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              appendSpeaker({ name: '', bio: '', topic: '', designation: '', organization: '' });
+            }}
+            className="flex items-center text-[#d7ff42] hover:text-opacity-80"
           >
-            <h2 className="text-xl font-semibold text-white mb-6">Additional Information</h2>
-            <div className="space-y-6">
-              {/* Speakers */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-medium text-gray-200">
-                    Speakers
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => append({ name: '', bio: '', topic: '' })}
-                    className="flex items-center text-[#d7ff42] hover:text-opacity-80"
-                  >
-                    <FaPlus className="mr-2" />
-                    Add Speaker
-                  </button>
-                </div>
-                
-                {fields.map((field, index) => (
-                  <div key={field.id} className="p-4 bg-[#1d2132] rounded-[10px] mb-4">
-                    <div className="flex justify-between mb-4">
-                      <h4 className="text-white font-medium">Speaker {index + 1}</h4>
-                      <button
-                        type="button"
-                        onClick={() => remove(index)}
-                        className="text-red-500 hover:text-red-400"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                    <div className="space-y-4">
-                      <input
-                        {...register(`speakers.${index}.name` as const)}
-                        placeholder="Speaker Name"
-                        className="w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
-                      />
-                      <input
-                        {...register(`speakers.${index}.topic` as const)}
-                        placeholder="Topic"
-                        className="w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
-                      />
-                      <textarea
-                        {...register(`speakers.${index}.bio` as const)}
-                        placeholder="Speaker Bio"
-                        rows={3}
-                        className="w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Agenda */}
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Event Agenda
+            <FaPlus className="mr-2" />
+            Add Speaker
+          </button>
+        </div>
+        
+        {speakerFields.map((field, index) => (
+          <div key={field.id} className="p-4 bg-[#1d2132] rounded-[10px] mb-4">
+            <div className="flex justify-between mb-4">
+              <h4 className="text-white font-medium">Speaker {index + 1}</h4>
+              <button
+                type="button"
+                onClick={() => removeSpeaker(index)}
+                className="text-red-500 hover:text-red-400"
+              >
+                <FaTrash />
+              </button>
+            </div>
+            
+            <div className="grid md:grid-cols-4 gap-4 mb-4">
+              <div className="md:col-span-1">
+                {/* Speaker Photo - Decreased size */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  id={`speaker-image-${index}`}
+                  className="hidden"
+                />
+                <label
+                  htmlFor={`speaker-image-${index}`}
+                  className="block w-full h-24 bg-[#222839] border-2 border-dashed border-gray-700 rounded-lg flex items-center justify-center cursor-pointer"
+                >
+                  <FaImage className="h-6 w-6 text-gray-400" />
                 </label>
-                <textarea
-                  {...register('agenda')}
-                  rows={4}
-                  className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+                <p className="text-xs text-gray-400 mt-1 text-center">Photo</p>
+              </div>
+              
+              <div className="md:col-span-3 space-y-4">
+                {/* Speaker Name */}
+                <input
+                  {...register(`speakers.${index}.name` as const)}
+                  placeholder="Speaker Name"
+                  className="w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+                />
+                
+                {/* Position/Designation */}
+                <input
+                  {...register(`speakers.${index}.designation` as const)}
+                  placeholder="Position/Designation"
+                  className="w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+                />
+                
+                {/* Organization */}
+                <input
+                  {...register(`speakers.${index}.organization` as const)}
+                  placeholder="Organization"
+                  className="w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
                 />
               </div>
             </div>
-          </motion.div>
-        )}
+            
+            <div className="space-y-4 mt-2">
+              {/* Topic */}
+              
+              
+              {/* Speaker Bio */}
+              <textarea
+                {...register(`speakers.${index}.bio` as const)}
+                placeholder="Speaker Bio"
+                rows={3}
+                className="w-full px-4 py-2 bg-[#222839] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-200 mb-4">
+          About This Event
+        </label>
+        <div className="bg-[#1d2132] border border-gray-700 rounded-[10px]">
+          <Controller
+            control={control}
+            name="aboutEvent"
+            render={({ field }) => (
+              <RichTextEditorWrapper 
+                initialValue={field.value || ''} 
+                onChange={(content) => field.onChange(content)} 
+                maxHTMLLength={5000}
+              />
+            )}
+          />
+        </div>
+      </div>
+      
+      {/* Event Status - Moved from Technical Details */}
+      <div>
+        <label className="block text-sm font-medium text-gray-200 mb-2">
+          Event Status
+        </label>
+        <select
+          {...register('status', { required: 'Status is required' })}
+          className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+        >
+          <option value="draft">Draft</option>
+          <option value="upcoming">Upcoming</option>
+          <option value="ongoing">Ongoing</option>
+          <option value="completed">Completed</option>
+          <option value="canceled">Canceled</option>
+        </select>
+      </div>
+      
+      {/* For online/hybrid events, show streaming link field */}
+      {(eventMode === 'online' || eventMode === 'hybrid') && (
+        <div>
+          <label className="block text-sm font-medium text-gray-200 mb-2">
+            Streaming Link
+          </label>
+          <input
+            {...register('streamingLink', { 
+              required: 'Streaming link is required for online events'
+            })}
+            className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
+          />
+        </div>
+      )}
+    </div>
+  </motion.div>
+)}
 
         {/* Step 8: Technical Details */}
         {currentStep === 8 && (
@@ -810,3 +1092,4 @@ const CreateEvent: React.FunctionComponent<ICreateEventProps> = () => {
 };
 
 export default CreateEvent;
+
