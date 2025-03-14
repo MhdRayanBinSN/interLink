@@ -1,4 +1,5 @@
 export interface Event {
+  mode: string;
   id: string;
   title: string;
   description: string;

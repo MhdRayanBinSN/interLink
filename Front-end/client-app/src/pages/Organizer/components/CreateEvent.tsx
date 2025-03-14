@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaPlus, FaTrash, FaImage, FaCloudUploadAlt, FaCalendarPlus, FaArrowRight, FaArrowLeft, FaLocationArrow, FaDirections } from 'react-icons/fa';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import RichTextEditorWrapper from './RichTextEditorWrapper';
-
+import axios from 'axios';
+import { serverUrl } from '../../../helpers/Constant';
 
 
 type FileList = {
@@ -47,6 +49,7 @@ type EventFormData = {
   
   // Additional Info
   speakers: {
+    image: any;
     name: string;
     bio: string;
     topic: string;
@@ -108,11 +111,16 @@ const FORM_STEPS = [
   { id: 4, title: 'Schedule' },
   { id: 5, title: 'Participation' },
   { id: 6, title: 'Ticketing' },
-  { id: 7, title: 'About and Speaker Details' }, // Now this is the last step
+  { id: 7, title: 'About and Speaker Details' }, 
 ];
 
 const CreateEvent: React.FC = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Move this here
+  const [successMessage, setSuccessMessage] = useState(""); // Add success message state
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null); // Add this state for file previews
+  
   const { 
     register, 
     control, 
@@ -134,7 +142,8 @@ const CreateEvent: React.FC = () => {
       schedules: [],
       speakers: [],
       socialLinks: [],
-      featuredSpeakers: []
+      featuredSpeakers: [],
+      aboutEvent: "<p>Information about this event will be provided here.</p>" // Add this default value
     }
   });
 
@@ -144,7 +153,7 @@ const CreateEvent: React.FC = () => {
     remove: removeSchedule 
   } = useFieldArray({
     control,
-    name: "schedules"
+    name: 'schedules'
   });
 
   const { 
@@ -168,19 +177,102 @@ const CreateEvent: React.FC = () => {
   const eventMode = watch('mode');
   const entryType = watch('entryType');
 
+  // Add this safety check to your onSubmit function
   const onSubmit = async (data: EventFormData) => {
+    // Log what step we're on when submission occurs
+    console.log(`Form submitted from step ${currentStep} of ${FORM_STEPS.length}`);
+    
+    // Add a safeguard to prevent submission if not on the last step
+    if (currentStep !== FORM_STEPS.length) {
+      console.log('Preventing submission - not on last step');
+      return;
+    }
+    
     try {
-      console.log('Form data:', data);
-      // TODO: Add your API call here
+      setIsSubmitting(true);
       
-      // Show better success message
-      alert(`Event "${data.title}" created successfully! Your event has been submitted and is now ${data.status}.`);
+      // Ensure aboutEvent has a value if it's empty
+      if (!data.aboutEvent || data.aboutEvent.trim() === '') {
+        data.aboutEvent = "<p>No description provided</p>";
+      }
       
-      // Optionally, redirect to events page
-      // navigate('/organizer/events');
-    } catch (error) {
+      // Log the aboutEvent for debugging
+      console.log('About Event content before submission:', data.aboutEvent);
+      
+      // Create FormData for file uploads
+      const formData = new FormData();
+      
+      // Handle banner image upload
+      if (data.bannerImage && data.bannerImage[0]) {
+        formData.append('bannerImage', data.bannerImage[0]);
+      }
+      
+      // Handle speaker images if present
+      data.speakers.forEach((speaker, index) => {
+        if (speaker.image && speaker.image[0]) {
+          formData.append(`speakerImages`, speaker.image[0]);
+          // Add the index so the backend knows which speaker this belongs to
+          formData.append(`speakerIndex`, index.toString());
+        }
+      });
+      
+      // Create clean event data object without file fields
+      const cleanEventData = {
+        ...data,
+        bannerImage: undefined,
+        speakers: data.speakers.map(s => ({
+          ...s,
+          image: undefined 
+        })),
+        // Make sure aboutEvent is explicitly set
+        aboutEvent: data.aboutEvent || "<p>No description provided</p>"
+      };
+      
+      // Log the final data for debugging
+      console.log('Final aboutEvent being sent:', cleanEventData.aboutEvent);
+      
+      // Add the main event data as JSON
+      formData.append('eventData', JSON.stringify(cleanEventData));
+      
+      console.log('Sending data to server...');
+      
+      // Send to API
+      const response = await axios.post(`${serverUrl}/events/createEvent`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      console.log('Event created successfully:', response.data);
+      
+      // Show success message and redirect
+      setSuccessMessage(`Event "${data.title}" created successfully!`);
+      setTimeout(() => {
+        navigate('/organizer/dashboard');
+      }, 2000); // Redirect after 2 seconds
+      
+    } catch (error: any) {
       console.error('Error creating event:', error);
-      alert('Failed to create event. Please check your information and try again.');
+  
+      // Log more detailed error information
+      if (error.response) {
+        // The request was made and the server responded with an error status
+        console.error('Server response:', error.response.data);
+        console.error('Status code:', error.response.status);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received:', error.request);
+      } else {
+        // Something happened in setting up the request
+        console.error('Request setup error:', error.message);
+      }
+      
+      const errorMessage = error.response?.data?.error || error.message;
+      alert(`Failed to create event: ${errorMessage}`);
+
+      
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -242,8 +334,36 @@ const CreateEvent: React.FC = () => {
     console.log('Form values:', watch());
   }, [currentStep]);
 
+  // Add this useEffect to handle banner preview
+  useEffect(() => {
+    const bannerFile = watch('bannerImage')?.[0];
+    if (bannerFile) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBannerPreview(reader.result as string);
+      };
+      reader.readAsDataURL(bannerFile);
+    }
+  }, [watch('bannerImage')]);
+
   return (
     <div className="max-w-4xl mx-auto py-8">
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-500 text-white p-4 rounded-lg mb-6 flex items-center justify-between">
+          <div className="flex items-center">
+            <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            {successMessage}
+          </div>
+          <button onClick={() => setSuccessMessage("")} className="text-white">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
@@ -253,6 +373,7 @@ const CreateEvent: React.FC = () => {
               className={`flex-1 h-2 mx-1 rounded-full ${
                 step.id <= currentStep ? 'bg-[#d7ff42]' : 'bg-gray-700'
               }`}
+
             />
           ))}
         </div>
@@ -261,7 +382,15 @@ const CreateEvent: React.FC = () => {
         </h2>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form 
+        onSubmit={handleSubmit(onSubmit)} 
+        className="space-y-8"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && currentStep !== FORM_STEPS.length) {
+            e.preventDefault();
+          }
+        }}
+      >
         {/* Step 1: Basic Details */}
         {currentStep === 1 && (
           <motion.div
@@ -334,30 +463,52 @@ const CreateEvent: React.FC = () => {
           >
             <h2 className="text-xl font-semibold text-white mb-6">Event Media & Links</h2>
             <div className="space-y-6">
-              {/* Banner Image */}
+              {/* Banner Image with Preview */}
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-2">
                   Event Banner
                 </label>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-700 border-dashed rounded-[10px] bg-[#1d2132]">
-                  <div className="space-y-1 text-center">
-                    <FaImage className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="flex text-sm text-gray-400">
-                      <label className="relative cursor-pointer rounded-md font-medium text-[#d7ff42] hover:text-[#d7ff42]/80">
-                        <span>Upload a file</span>
-                        <input
-                          type="file"
-                          {...register('bannerImage')}
-                          className="sr-only"
-                          accept="image/*"
-                        />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
+                  {bannerPreview ? (
+                    <div className="w-full">
+                      <img 
+                        src={bannerPreview} 
+                        alt="Banner preview" 
+                        className="max-h-64 mx-auto object-contain"
+                      />
+                      <div className="flex justify-center mt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setValue('bannerImage', undefined);
+                            setBannerPreview(null);
+                          }}
+                          className="text-sm text-red-500 hover:text-red-400"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-400">
-                      PNG, JPG, GIF up to 10MB
-                    </p>
-                  </div>
+                  ) : (
+                    <div className="space-y-1 text-center">
+                      <FaImage className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="flex text-sm text-gray-400">
+                        <label className="relative cursor-pointer rounded-md font-medium text-[#d7ff42] hover:text-[#d7ff42]/80">
+                          <span>Upload a file</span>
+                          <input
+                            type="file"
+                            {...register('bannerImage')}
+                            className="sr-only"
+                            accept="image/*"
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        PNG, JPG, GIF up to 10MB
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -579,10 +730,10 @@ const CreateEvent: React.FC = () => {
               {(eventMode === 'offline' || eventMode === 'hybrid') && (
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-2">
-                    Location
+                    Venue
                   </label>
                   <input
-                    {...register('venue', { required: 'Location is required for offline events' })}
+                    {...register('venue', { required: 'Venue is required for offline events' })}
                     placeholder="Enter full venue address"
                     className="w-full px-4 py-2 bg-[#1d2132] border border-gray-700 rounded-[10px] text-white focus:ring-2 focus:ring-[#d7ff42] focus:border-transparent"
                   />
@@ -816,7 +967,7 @@ const CreateEvent: React.FC = () => {
           <button
             type="button"
             onClick={() => {
-              appendSpeaker({ name: '', bio: '', topic: '', designation: '', organization: '' });
+              appendSpeaker({ image: null, name: '', bio: '', topic: '', designation: '', organization: '' });
             }}
             className="flex items-center text-[#d7ff42] hover:text-opacity-80"
           >
@@ -896,6 +1047,7 @@ const CreateEvent: React.FC = () => {
         ))}
       </div>
 
+      {/* About This Event */}
       <div>
         <label className="block text-sm font-medium text-gray-200 mb-4">
           About This Event
@@ -903,16 +1055,29 @@ const CreateEvent: React.FC = () => {
         <div className="bg-[#1d2132] border border-gray-700 rounded-[10px]">
           <Controller
             control={control}
-            name="aboutEvent"
+            name="aboutEvent"  
+            defaultValue=""
             render={({ field }) => (
               <RichTextEditorWrapper 
-                initialValue={field.value || ''} 
-                onChange={(content) => field.onChange(content)} 
+                initialValue={field.value || ''}
+                onChange={(content) => {
+                  console.log("Setting aboutEvent content:", content);
+                  // Make sure content is a string
+                  if (typeof content === 'string') {
+                    field.onChange(content);
+                  } else {
+                    // If it's not a string, convert it to a string
+                    field.onChange(String(content));
+                  }
+                }}
                 maxHTMLLength={5000}
               />
             )}
           />
         </div>
+        {errors.aboutEvent && (
+          <p className="mt-1 text-sm text-red-500">{errors.aboutEvent.message}</p>
+        )}
       </div>
       
       {/* Event Status - Moved from Technical Details */}
@@ -1058,7 +1223,7 @@ const CreateEvent: React.FC = () => {
         <div className="flex justify-between mt-8">
           {currentStep > 1 && (
             <button
-              type="button"
+              type="button" // This is crucial
               onClick={prevStep}
               className="px-6 py-3 bg-gray-700 text-white rounded-[10px] font-semibold hover:bg-opacity-90 transform hover:scale-[1.02] transition-all duration-200 flex items-center"
             >
@@ -1069,7 +1234,7 @@ const CreateEvent: React.FC = () => {
           
           {currentStep < FORM_STEPS.length ? (
             <button
-              type="button"
+              type="button" // This is crucial
               onClick={nextStep}
               className="px-6 py-3 bg-[#7557e1] text-white rounded-[10px] font-semibold hover:bg-opacity-90 transform hover:scale-[1.02] transition-all duration-200 flex items-center ml-auto"
             >
@@ -1078,11 +1243,21 @@ const CreateEvent: React.FC = () => {
             </button>
           ) : (
             <button
-              type="submit"
-              className="px-8 py-4 bg-[#d7ff42] text-[#1d2132] rounded-[10px] font-semibold hover:bg-opacity-90 transform hover:scale-[1.02] transition-all duration-200 flex items-center ml-auto"
+              type="submit" // This one should submit
+              disabled={isSubmitting}
+              className={`px-8 py-4 bg-[#d7ff42] text-[#1d2132] rounded-[10px] font-semibold hover:bg-opacity-90 transform hover:scale-[1.02] transition-all duration-200 flex items-center ml-auto ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              <FaCalendarPlus className="mr-2" />
-              Create Event
+              {isSubmitting ? (
+                <>
+                  <div className="mr-2 h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <FaCalendarPlus className="mr-2" />
+                  Create Event
+                </>
+              )}
             </button>
           )}
         </div>

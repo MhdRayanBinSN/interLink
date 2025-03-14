@@ -1,11 +1,12 @@
-import express from "express"
-import { createEvent } from "../controllers/eventController"
-const router = express.Router()
+import express from "express";
+import { createEvent, getAllEvents, getEventById } from "../controllers/eventController";
+import { uploadFiles } from "../middleware/fileUpload";
 
+const router = express.Router();
 
-//router.route('/').get(getEvents)
-router.post('/createEvent',createEvent)
+router.post('/createEvent', uploadFiles, createEvent);
+router.get('/getAllEvents', getAllEvents);
 
+router.get('/getEventById/:id', getEventById);
 
-
-export default router
+export default router;

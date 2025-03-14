@@ -44,7 +44,7 @@ const OrganizerRegister: React.FC = () => {
     }
 
     try {
-      // Note: Remove the extra 'api' in the URL
+    
       const response = await axios.post(`${serverUrl}/organizer/register`, {
         organizationName: formData.organizationName,
         organizationType: formData.organizationType,
