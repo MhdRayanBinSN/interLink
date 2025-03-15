@@ -99,7 +99,7 @@ const Home: React.FunctionComponent = () => {
             >
               <a
                 href="/events"
-                target="_blank"
+                
                 rel="noopener noreferrer"
                 className="px-8 py-4 bg-[#7557e1] text-white rounded-full font-semibold hover:bg-opacity-90 transition-all flex items-center gap-2"
               >

@@ -1,13 +1,18 @@
 import * as React from 'react';
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { useStore } from "../../store"
+import { useStore } from "../../store.tsx"
 import { Sun, Moon, Calendar, Home, User, Ticket, ChevronDown } from 'lucide-react';
 
 const Navbar: React.FunctionComponent = () => {
-    const { user, logout } = useStore()
+    const { user, logout, checkAuth } = useStore();
     const [darkMode, setDarkMode] = React.useState(false);
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+    
+    // Check auth on mount to ensure user data is fresh
+    React.useEffect(() => {
+        checkAuth();
+    }, []);
     
     React.useEffect(() => {
       if (darkMode) {
@@ -28,6 +33,12 @@ const Navbar: React.FunctionComponent = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isMenuOpen]);
+
+    const handleLogout = () => {
+        logout();
+        // You might want to redirect to home page
+        window.location.href = '/events';
+    };
 
     const UserMenu = () => (
         <div className="relative user-menu">
@@ -97,7 +108,7 @@ const Navbar: React.FunctionComponent = () => {
                         <div className="px-2">
                             <motion.button
                                 whileHover={{ x: 4 }}
-                                onClick={logout}
+                                onClick={handleLogout}
                                 className="w-full flex items-center px-3 py-2 text-sm text-red-400 rounded-lg hover:bg-red-400/10 transition-colors group"
                             >
                                 <svg 

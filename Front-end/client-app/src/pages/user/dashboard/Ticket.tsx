@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'qrcode.react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { Calendar, Clock, MapPin, Download, X, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, MapPin, Download, X, ExternalLink, Loader } from 'lucide-react';
+import axios from 'axios';
+import { serverUrl } from '../../../helpers/Constant';
 import { TicketPDF } from './TicketPDF';
 
 interface TicketData {
@@ -162,24 +164,70 @@ const TicketModal: React.FC<{ ticket: TicketData; onClose: () => void }> = ({ ti
 
 const Ticket: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
+  const [tickets, setTickets] = useState<TicketData[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  // Dummy ticket data
-  const tickets: TicketData[] = [
-    {
-      id: "T1001",
-      eventName: "React Advanced Conference 2024",
-      eventDate: "2024-03-15",
-      eventTime: "09:00 AM",
-      eventLocation: "Tech Convention Center",
-      ticketType: "VIP Access",
-      ticketNumber: "REACT-2024-001",
-      price: 199.99,
-      purchaseDate: "2024-02-20",
-      eventId: "E1001",
-      status: 'upcoming'
-    },
-    // Add more dummy tickets as needed
-  ];
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        setLoading(true);
+        
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+        
+        const response = await axios.get(`${serverUrl}/bookings/my-tickets`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        if (response.data.success) {
+          setTickets(response.data.data);
+        } else {
+          setError('Failed to fetch tickets');
+        }
+      } catch (error: any) {
+        console.error('Error fetching tickets:', error);
+        setError(error.response?.data?.error || 'Failed to load tickets');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTickets();
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center">
+        <div className="flex flex-col items-center">
+          <Loader className="w-10 h-10 text-[#7557e1] animate-spin" />
+          <p className="mt-4 text-gray-300">Loading your tickets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-lg">
+          <p className="text-red-400">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 text-[#7557e1] hover:underline"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">

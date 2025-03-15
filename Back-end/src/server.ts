@@ -1,9 +1,13 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import connectDB from './config/dbConfig';
+import cors from 'cors';
+//Route imports
 import eventRoutes from './routes/eventRoutes';
 import organizerRoutes from './routes/organizerRoutes';
-import cors from 'cors';
+import  userRoutes from './routes/userRoutes';
+import bookingRoutes from './routes/bookingRoutes';
+
 
 dotenv.config();
 
@@ -20,6 +24,8 @@ connectDB();
 // Routes - Note the path without extra 'api'
 app.use('/api/organizer', organizerRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/user',userRoutes)
+app.use('/api/bookings', bookingRoutes);
 
 const PORT = process.env.PORT || 5001;
 

@@ -310,4 +310,15 @@ eventSchema.pre('validate', function(next) {
   next();
 });
 
+// Add this function to your Event model if not already present
+eventSchema.methods.getRemainingSpots = async function(): Promise<number> {
+  const bookedCount = await mongoose.model('Booking').aggregate([
+    { $match: { event: this._id, bookingStatus: 'confirmed' } },
+    { $group: { _id: null, totalTickets: { $sum: '$ticketCount' } } }
+  ]);
+  
+  const bookedTickets = bookedCount.length > 0 ? bookedCount[0].totalTickets : 0;
+  return this.maxParticipants - bookedTickets;
+};
+
 export const Event = mongoose.model<IEvent>('Event', eventSchema);

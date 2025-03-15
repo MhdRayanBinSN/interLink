@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, UserCircle } from 'lucide-react';
-import { useStore } from "../../store";
+import { Mail, Lock, UserCircle, AlertCircle, Loader } from 'lucide-react';
+import { useStore } from "../../store.tsx";
+import axios from 'axios';
+import { serverUrl } from '../../helpers/Constant';
+import toast, { Toaster } from 'react-hot-toast';
+import { CustomToast } from '../../components/Toast';
+import { logUserStatus } from '../../utils/authUtils';
 
 interface InputGroupProps {
   icon: React.ReactNode;
@@ -10,42 +15,134 @@ interface InputGroupProps {
   placeholder: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
 }
 
-const InputGroup: React.FC<InputGroupProps> = ({ icon, ...props }) => (
+const InputGroup: React.FC<InputGroupProps> = ({ icon, error, ...props }) => (
   <div className="relative">
     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
       {icon}
     </div>
     <input
       {...props}
-      className="w-full px-10 py-2.5 bg-[#1d2132] text-white placeholder-gray-400 border border-gray-700/50 rounded-lg focus:outline-none focus:border-[#7557e1] focus:ring-1 focus:ring-[#7557e1] transition-colors"
+      className={`w-full px-10 py-2.5 bg-[#1d2132] text-white placeholder-gray-400 border ${
+        error ? 'border-red-500' : 'border-gray-700/50'
+      } rounded-lg focus:outline-none focus:border-[#7557e1] focus:ring-1 focus:ring-[#7557e1] transition-colors`}
       required
     />
+    {error && (
+      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+        <AlertCircle className="w-5 h-5 text-red-500" />
+      </div>
+    )}
+    {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
   </div>
 );
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{email?: string; password?: string; general?: string}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const user = {
-      id: Math.random().toString(36).substring(2, 9),
-      name: email.split("@")[0],
-      email,
-      role: "user"
-    };
-    localStorage.setItem('token', 'your-auth-token');
-    login(user);
-    navigate("/dashboard/profile");
+  // Check if there's a message from registration success
+  React.useEffect(() => {
+    if (location.state?.message) {
+      toast.custom((t) => (
+        <CustomToast
+          type="success"
+          message={location.state.message}
+          onClose={() => toast.dismiss(t.id)}
+        />
+      ), {
+        duration: 5000,
+      });
+      
+      // Clear the message after showing toast
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location]);
+
+  useEffect(() => {
+    logUserStatus();
+  }, []);
+
+  const validateForm = (): boolean => {
+    const newErrors: {email?: string; password?: string} = {};
+    let isValid = true;
+
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email';
+      isValid = false;
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
+
+  const handleLogin = async (data: { email: string; password: string }) => {
+    try {
+      const response = await axios.post(`${serverUrl}/user/login`, data);
+      
+      if (response.data.success) {
+        // Store the token and update the user data in the store
+        const userData = response.data.data; // User data from API
+        const token = response.data.token; // JWT token
+        
+        login(userData, token);
+        
+        toast.success('Login successful!');
+        
+        // Redirect to appropriate page
+        const from = location.state?.from || '/dashboard';
+        navigate(from);
+      } else {
+        toast.error(response.data.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('An error occurred during login');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Clear previous errors
+    setErrors({});
+    
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      await handleLogin({ email, password });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Add to any component temporarily to debug
+  console.log('Current token:', localStorage.getItem('token'));
+  console.log('Current user:', useStore.getState().user);
 
   return (
     <div className="min-h-screen bg-[#1d2132] flex items-center justify-center p-4">
+      <Toaster />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -76,6 +173,7 @@ const Login: React.FC = () => {
               placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              error={errors.email}
             />
 
             <InputGroup
@@ -84,7 +182,12 @@ const Login: React.FC = () => {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              error={errors.password}
             />
+
+            {errors.general && (
+              <p className="text-sm text-red-500 text-center">{errors.general}</p>
+            )}
 
             <div className="flex items-center justify-end">
               <Link 
@@ -99,8 +202,10 @@ const Login: React.FC = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full py-2.5 bg-[#7557e1] text-white rounded-lg font-medium hover:opacity-90 transition-all"
+              className="w-full py-2.5 bg-[#7557e1] text-white rounded-lg font-medium hover:opacity-90 transition-all flex items-center justify-center"
+              disabled={isSubmitting}
             >
+              {isSubmitting && <Loader className="w-5 h-5 mr-2 animate-spin" />}
               Sign in
             </motion.button>
 

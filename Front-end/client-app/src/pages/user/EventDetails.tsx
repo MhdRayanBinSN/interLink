@@ -52,6 +52,7 @@ export const EventDetails: React.FC = () => {
   const [event, setEvent] = useState<BackendEvent | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [remainingSpots, setRemainingSpots] = useState<number>(0);
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -73,6 +74,24 @@ export const EventDetails: React.FC = () => {
     };
 
     fetchEventDetails();
+  }, [id]);
+
+  useEffect(() => {
+    const fetchRemainingSpots = async () => {
+      if (!id) return;
+      
+      try {
+        const response = await axios.get(`${serverUrl}/bookings/remaining-spots/${id}`);
+        
+        if (response.data.success) {
+          setRemainingSpots(response.data.data.availableSpots);
+        }
+      } catch (error) {
+        console.error('Error fetching remaining spots:', error);
+      }
+    };
+    
+    fetchRemainingSpots();
   }, [id]);
 
   // Loading state
@@ -115,9 +134,6 @@ export const EventDetails: React.FC = () => {
   const formattedDate = format(eventDate, 'PPP');
   const formattedTime = format(eventDate, 'p');
   
-  // Calculate remaining spots (for online/hybrid events)
-  const remainingSpots = event.maxParticipants - 0; // Replace 0 with actual registered count when available
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -338,7 +354,7 @@ export const EventDetails: React.FC = () => {
                         <MapPin className="w-5 h-5 text-gray-400" />
                       )}
                       <div>
-                        <p className="text-sm text-gray-400">Event Type</p>
+                        <p className="text-sm text-gray-400">Mode</p>
                         <p className="font-medium text-white capitalize">{event.mode}</p>
                       </div>
                     </div>
@@ -370,7 +386,10 @@ export const EventDetails: React.FC = () => {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate(`/events/${id}/booking`)}
+                    onClick={() => {
+                      console.log(`Navigating to: /events/${id}/booking`);
+                      navigate(`/events/${id}/booking`);
+                    }}
                     className="w-full bg-[#d7ff42] text-[#1d2132] py-4 px-6 rounded-xl font-semibold hover:opacity-90 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                   >
                     <Ticket className="w-5 h-5" />

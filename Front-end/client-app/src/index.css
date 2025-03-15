@@ -2,4 +2,37 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
+/* Add these styles to your CSS */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  .print\:block {
+    display: block !important;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  /* Target the ticket container */
+  .bg-\[\#222839\] {
+    background-color: white !important;
+    border: 1px solid #ccc !important;
+    color: black !important;
+  }
+  
+  /* Make text dark for printing */
+  .text-white, .text-gray-400 {
+    color: black !important;
+  }
+  
+  /* Ensure QR code is visible */
+  canvas {
+    background-color: white !important;
+  }
+}
+
 
