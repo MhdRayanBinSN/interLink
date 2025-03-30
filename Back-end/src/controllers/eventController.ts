@@ -16,16 +16,28 @@ declare global {
 export const createEvent = async (req: express.Request, res: express.Response) => {
     try {
         console.log('Request body:', req.body);
+        const organizerId = req.user?.id;
         
+        if (!organizerId) {
+            console.log(res.status(401).json({
+                success: false,
+                error: 'Not authorized - organizer ID missing'
+            }))
+        }
+
         // Check if eventData exists in request body
         if (!req.body.eventData) {
-           return console.error("Missing data");
-           
-           
+           console.log( res.status(400).json({
+                success: false,
+                error: 'Event data is required'
+            }))
         }
         
         const eventData = JSON.parse(req.body.eventData);
         console.log('Parsed event data:', eventData);
+        
+        // Add organizerId to event data
+        eventData.organizerId = organizerId;
         
         if (req.files) {
             // Add banner image URL
@@ -48,7 +60,6 @@ export const createEvent = async (req: express.Request, res: express.Response) =
             }
         }
         
-        // FIX: Use eventData instead of req.body
         const event = await Event.create(eventData);
         
         res.status(201).json({
@@ -118,3 +129,38 @@ export const getEventById = async (req: express.Request, res: express.Response):
         });
     }
 }
+
+export const getEventsByOrganizer = async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+        const organizerId = req.params.organizerId;
+        
+        if (!organizerId) {
+            res.status(400).json({
+                success: false,
+                error: 'Organizer ID is required'
+            });
+            return;
+        }
+
+        // Find all events for this organizer with populated fields
+        const events = await Event.find({ organizerId })
+            .populate('registeredParticipants', 'name email')
+            .populate({
+                path: 'bookings',
+                select: 'bookingStatus ticketCount totalAmount'
+            })
+            .sort({ startDateTime: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: events.length,
+            data: events
+        });
+    } catch (error: any) {
+        console.error('Error getting organizer events:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Error fetching organizer events'
+        });
+    }
+};

@@ -8,7 +8,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import RichTextEditorWrapper from './RichTextEditorWrapper';
 import axios from 'axios';
 import { serverUrl } from '../../../helpers/Constant';
-
+import { toast } from 'react-toastify';
 
 type FileList = {
   item(index: number): File | null;
@@ -177,104 +177,92 @@ const CreateEvent: React.FC = () => {
   const eventMode = watch('mode');
   const entryType = watch('entryType');
 
-  // Add this safety check to your onSubmit function
   const onSubmit = async (data: EventFormData) => {
-    // Log what step we're on when submission occurs
-    console.log(`Form submitted from step ${currentStep} of ${FORM_STEPS.length}`);
-    
-    // Add a safeguard to prevent submission if not on the last step
-    if (currentStep !== FORM_STEPS.length) {
-      console.log('Preventing submission - not on last step');
-      return;
-    }
-    
     try {
-      setIsSubmitting(true);
-      
-      // Ensure aboutEvent has a value if it's empty
-      if (!data.aboutEvent || data.aboutEvent.trim() === '') {
-        data.aboutEvent = "<p>No description provided</p>";
-      }
-      
-      // Log the aboutEvent for debugging
-      console.log('About Event content before submission:', data.aboutEvent);
-      
-      // Create FormData for file uploads
-      const formData = new FormData();
-      
-      // Handle banner image upload
-      if (data.bannerImage && data.bannerImage[0]) {
-        formData.append('bannerImage', data.bannerImage[0]);
-      }
-      
-      // Handle speaker images if present
-      data.speakers.forEach((speaker, index) => {
-        if (speaker.image && speaker.image[0]) {
-          formData.append(`speakerImages`, speaker.image[0]);
-          // Add the index so the backend knows which speaker this belongs to
-          formData.append(`speakerIndex`, index.toString());
+        setIsSubmitting(true);
+        
+        // Get token and ensure it exists
+        const token = localStorage.getItem('organizer_token');
+        
+        if (!token) {
+            toast.error('Please login to create an event');
+            navigate('/organizer/login');
+            return;
         }
-      });
-      
-      // Create clean event data object without file fields
-      const cleanEventData = {
-        ...data,
-        bannerImage: undefined,
-        speakers: data.speakers.map(s => ({
-          ...s,
-          image: undefined 
-        })),
-        // Make sure aboutEvent is explicitly set
-        aboutEvent: data.aboutEvent || "<p>No description provided</p>"
-      };
-      
-      // Log the final data for debugging
-      console.log('Final aboutEvent being sent:', cleanEventData.aboutEvent);
-      
-      // Add the main event data as JSON
-      formData.append('eventData', JSON.stringify(cleanEventData));
-      
-      console.log('Sending data to server...');
-      
-      // Send to API
-      const response = await axios.post(`${serverUrl}/events/createEvent`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      console.log('Event created successfully:', response.data);
-      
-      // Show success message and redirect
-      setSuccessMessage(`Event "${data.title}" created successfully!`);
-      setTimeout(() => {
-        navigate('/organizer/dashboard');
-      }, 2000); // Redirect after 2 seconds
-      
-    } catch (error: any) {
-      console.error('Error creating event:', error);
-  
-      // Log more detailed error information
-      if (error.response) {
-        // The request was made and the server responded with an error status
-        console.error('Server response:', error.response.data);
-        console.error('Status code:', error.response.status);
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error('No response received:', error.request);
-      } else {
-        // Something happened in setting up the request
-        console.error('Request setup error:', error.message);
-      }
-      
-      const errorMessage = error.response?.data?.error || error.message;
-      alert(`Failed to create event: ${errorMessage}`);
 
-      
+        console.log('Token before API call:', token.substring(0, 15) + '...');
+        
+        // Create form data
+        const formData = new FormData();
+        
+        // Handle banner image upload
+        if (data.bannerImage && data.bannerImage[0]) {
+          formData.append('bannerImage', data.bannerImage[0]);
+        }
+        
+        // Handle speaker images
+        data.speakers.forEach((speaker, index) => {
+          if (speaker.image && speaker.image[0]) {
+            formData.append(`speakerImages`, speaker.image[0]);
+            formData.append(`speakerIndex`, index.toString());
+          }
+        });
+        
+        // Clean event data for JSON
+        const cleanEventData = {
+          ...data,
+          bannerImage: undefined,
+          speakers: data.speakers.map(s => ({
+            ...s,
+            image: undefined 
+          })),
+          aboutEvent: data.aboutEvent || "<p>No description provided</p>"
+        };
+        
+        // Add event data to form
+        formData.append('eventData', JSON.stringify(cleanEventData));
+
+        // Make API request with proper URL and token
+        const response = await axios.post(
+            `${serverUrl}/events/createEvent`, 
+            
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        if (response.data.success) {
+            toast.success('Event created successfully!');
+            navigate('/organizer/dashboard');
+        } else {
+            // Handle non-success response
+            toast.error(response.data.error || 'Failed to create event');
+        }
+
+    } catch (err: any) {
+        console.error('Full error details:', err);
+        
+        if (err.response?.status === 401) {
+            // Clear token and redirect to login
+            toast.error('Your session has expired. Please login again.');
+            localStorage.removeItem('organizer_token');
+            navigate('/organizer/login', { replace: true });
+        } else if (err.response?.status === 404) {
+            // API endpoint not found
+            toast.error('API endpoint not found. Please check server configuration.');
+            console.error('API Error - Path not found:', err.response?.config?.url);
+        } else {
+            // Other errors
+            toast.error(err.response?.data?.error || 'Failed to create event');
+        }
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
-  };
+};
 
   const nextStep = async () => {
     console.log('Current step:', currentStep);
@@ -346,6 +334,23 @@ const CreateEvent: React.FC = () => {
     }
   }, [watch('bannerImage')]);
 
+  // Add this at the beginning of your component
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const token = localStorage.getItem('organizer_token');
+      
+      if (!token) {
+        toast.error('Please login to create events');
+        navigate('/organizer/login', { replace: true });
+        return;
+      }
+      
+      
+    };
+    
+    verifyAuth();
+  }, [navigate]);
+
   return (
     <div className="max-w-4xl mx-auto py-8">
       {/* Success Message */}
@@ -383,10 +388,18 @@ const CreateEvent: React.FC = () => {
       </div>
 
       <form 
-        onSubmit={handleSubmit(onSubmit)} 
+        onSubmit={(e) => {
+          // Only process when explicitly submitting on final step
+          if (currentStep !== FORM_STEPS.length) {
+            e.preventDefault();
+            return false;
+          }
+          handleSubmit(onSubmit)(e);
+        }} 
         className="space-y-8"
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && currentStep !== FORM_STEPS.length) {
+          // Prevent Enter key from submitting the form
+          if (e.key === 'Enter') {
             e.preventDefault();
           }
         }}
@@ -1052,7 +1065,7 @@ const CreateEvent: React.FC = () => {
         <label className="block text-sm font-medium text-gray-200 mb-4">
           About This Event
         </label>
-        <div className="bg-[#1d2132] border border-gray-700 rounded-[10px]">
+        {/*<div className="bg-[#1d2132] border border-gray-700 rounded-[10px]">
           <Controller
             control={control}
             name="aboutEvent"  
@@ -1074,7 +1087,7 @@ const CreateEvent: React.FC = () => {
               />
             )}
           />
-        </div>
+        </div>*/}
         {errors.aboutEvent && (
           <p className="mt-1 text-sm text-red-500">{errors.aboutEvent.message}</p>
         )}
@@ -1243,7 +1256,8 @@ const CreateEvent: React.FC = () => {
             </button>
           ) : (
             <button
-              type="submit" // This one should submit
+              type="button" // Change from "submit" to "button"
+              onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting}
               className={`px-8 py-4 bg-[#d7ff42] text-[#1d2132] rounded-[10px] font-semibold hover:bg-opacity-90 transform hover:scale-[1.02] transition-all duration-200 flex items-center ml-auto ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
             >

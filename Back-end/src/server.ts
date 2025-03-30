@@ -21,10 +21,10 @@ app.use(express.urlencoded({ extended: true }));
 // Connect to MongoDB
 connectDB();
 
-// Routes - Note the path without extra 'api'
-app.use('/api/organizer', organizerRoutes);
+// Routes - Check these exact paths
+app.use('/api/organizer', organizerRoutes);  // This needs to match your axios calls
 app.use('/api/events', eventRoutes);
-app.use('/api/user',userRoutes)
+app.use('/api/user', userRoutes);
 app.use('/api/bookings', bookingRoutes);
 
 const PORT = process.env.PORT || 5001;

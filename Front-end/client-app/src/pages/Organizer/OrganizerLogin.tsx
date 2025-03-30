@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaUser, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
 import { serverUrl } from '../../helpers/Constant';
+import { toast } from 'react-toastify';
 
 interface IOrganizerLoginProps {}
 
@@ -26,46 +27,36 @@ const OrganizerLogin: React.FunctionComponent<IOrganizerLoginProps> = () => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
-    // Validate input
-    if (!formData.userId || !formData.password) {
-        setError('Please fill in all fields');
-        setLoading(false);
-        return;
-    }
-
+    
     try {
-        const response = await axios.post(`${serverUrl}/organizer/login`, {
-            userId: formData.userId,
-            password: formData.password
-        });
+      console.log("Attempting login...");
+      const response = await axios.post(`${serverUrl}/organizer/login`, {
+        userId: formData.userId,
+        password: formData.password
+      });
 
-        console.log('Login response:', response.data); // Debug response
+      console.log("Login response:", response.data);
 
-        if (response.data.success && response.data.accessToken) {
-            // Store the token
-            localStorage.setItem('token', response.data.accessToken);
-            localStorage.setItem('userId', formData.userId);
-
-            // Clear form
-            setFormData({
-                userId: '',
-                password: ''
-            });
-
-            // Redirect
-            navigate('/organizer/dashboard', { replace: true });
-        } else {
-            setError('Invalid response from server');
-        }
+      if (response.data.success && response.data.accessToken) {
+        // Store token and ID
+        localStorage.setItem('organizer_token', response.data.accessToken);
+        localStorage.setItem('organizerId', response.data.organizerId);
+        
+        toast.success('Login successful!');
+        
+        // Use a timeout to ensure localStorage is set before navigation
+        setTimeout(() => {
+          console.log("Navigating to dashboard...");
+          navigate('/organizer/dashboard', { replace: true });
+        }, 300);
+      } else {
+        setError('Invalid response from server');
+      }
     } catch (err: any) {
-        console.error('Login error:', err);
-        setError(
-            err.response?.data?.message || 
-            'Login failed. Please check your credentials.'
-        );
+      console.error('Login error:', err);
+      setError(err.response?.data?.message || 'Login failed');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 

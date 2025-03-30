@@ -1,23 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { FaChartLine, FaUsers, FaCalendarPlus, FaBars, FaTimes, FaChevronRight, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 // Import your components
 import EventsList from './components/EventsList';
 import CreateEvent from './components/CreateEvent';
-import ManageParticipants from './components/ManageParticipants';
-import EventStatistics from './components/EventStatistics';
-import OrganizerProfile from './components/OrganizerProfile';
 
+import OrganizerProfile from './components/OrganizerProfile';
 
 const OrganizerDashboard: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    // Debug authentication state
+    const token = localStorage.getItem('organizer_token');
+    console.log("OrganizerDashboard - Token exists:", !!token);
+    
+    if (token) {
+      try {
+        // Check if token is valid format
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) {
+          console.error("Invalid token format");
+        }
+        
+        // Check expiry
+        const payload = JSON.parse(atob(tokenParts[1]));
+        console.log("Token payload:", payload);
+        const expiry = new Date(payload.exp * 1000);
+        console.log("Token expires:", expiry);
+        console.log("Is expired:", expiry < new Date());
+      } catch (e) {
+        console.error("Token analysis error:", e);
+      }
+    }
+  }, []);
+
   const handleLogout = () => {
-    // Add any logout logic here (clear tokens, state, etc.)
+    localStorage.removeItem('organizer_token');
+    localStorage.removeItem('organizerId');
+    toast.info('You have been logged out');
     navigate('/organizer/login');
   };
 

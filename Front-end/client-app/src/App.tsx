@@ -20,6 +20,7 @@ import EditProfile from './pages/user/dashboard/EditProfile';
 import ChangePassword from './pages/user/dashboard/ChangePassword';
 import { UserStatusIndicator } from './components/DevTools/UserStatusIndicator';
 import BookingConfirmation from './pages/user/BookingConfirmation';
+import OrganizerAuthGuard from './utils/organizerAuthGuard';
 
 const App: React.FC = () => {
   const { checkAuth } = useStore();
@@ -35,7 +36,14 @@ const App: React.FC = () => {
           <Route path='/organizer' element={<OrganizerHome />}/>
           <Route path='/organizer/register' element={<OrganizerRegister />}/>
           <Route path='/organizer/login' element={<OrganizerLogin />}/>
-          <Route path='/organizer/dashboard/*' element={<OrganizerDashboard />}/>
+          <Route 
+            path="/organizer/dashboard/*" 
+            element={
+              <OrganizerAuthGuard>
+                <OrganizerDashboard />
+              </OrganizerAuthGuard>
+            } 
+          />
           <Route path='/organizer/dashboard/event/:eventId/*' element={<EventDashboard />}/>
           {/* Routes with navbar */}
           <Route element={<MainLayout />}>  

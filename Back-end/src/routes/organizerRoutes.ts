@@ -4,7 +4,10 @@ import {
   registerOrganizer, 
   getOrganizerProfile, 
   updateOrganizerProfile,
-  currentUser
+  currentUser,
+  refreshToken,
+  changeOrganizerPassword, // Import the new controller
+  
 } from '../controllers/organizerController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -18,5 +21,9 @@ router.post("/login", loginOrganizer);
 router.get('/profile', protect, getOrganizerProfile);
 router.put('/profile', protect, updateOrganizerProfile);
 router.get('/current', protect, currentUser);
+router.put('/change-password', protect, changeOrganizerPassword); // New route
+
+// Add the refresh token route
+router.post('/refresh-token', protect, refreshToken);
 
 export default router;

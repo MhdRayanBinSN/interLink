@@ -201,3 +201,91 @@ export const updateOrganizerProfile = async (req: Request, res: Response): Promi
     });
   }
 };
+
+// Add a refresh token endpoint to the controller
+export const refreshToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const organizerId = req.user.id;
+    
+    // Generate a new token
+    const accessToken = jwt.sign(
+      {
+      user: {
+      username: req.user.username,
+      id: organizerId,
+      }
+      },
+      process.env.ACCESS_TOKEN_SECRET as string,
+      { expiresIn: "5h" }
+    );
+    
+    res.status(200).json({
+      success: true,
+      accessToken
+    });
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to refresh token'
+    });
+  }
+};
+
+// Add this controller function
+export const changeOrganizerPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const organizerId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+    
+    // Basic validation
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({
+        success: false,
+        error: 'Both current and new passwords are required'
+      });
+      return;
+    }
+    
+    // Get organizer from database
+    const organizer = await Organizer.findById(organizerId);
+    
+    // Check if organizer exists
+    if (!organizer) {
+      res.status(404).json({
+        success: false,
+        error: 'Organizer not found'
+      });
+      return;
+    }
+    
+    // Check if current password is correct
+    const isMatch = await bcrypt.compare(currentPassword, organizer.password);
+    if (!isMatch) {
+      res.status(401).json({
+        success: false,
+        error: 'Current password is incorrect'
+      });
+      return;
+    }
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update password
+    organizer.password = hashedPassword;
+    await organizer.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to change password'
+    });
+  }
+};
