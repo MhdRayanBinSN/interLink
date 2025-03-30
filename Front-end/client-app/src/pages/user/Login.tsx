@@ -105,7 +105,7 @@ const Login: React.FC = () => {
         toast.success('Login successful!');
         
         // Redirect to appropriate page
-        const from = location.state?.from || '/dashboard';
+        const from = location.state?.from || '/events';
         navigate(from);
       } else {
         toast.error(response.data.message || 'Login failed');
@@ -131,6 +131,7 @@ const Login: React.FC = () => {
     
     try {
       await handleLogin({ email, password });
+      
     } finally {
       setIsSubmitting(false);
     }

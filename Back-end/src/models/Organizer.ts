@@ -50,7 +50,53 @@ const organizerSchema = new mongoose.Schema({
         required: [true, 'User ID is required'],
         unique: true,
         trim: true
-      }
+      },
+      bio: {
+        type: String,
+        trim: true
+      },
+      address: {
+        type: String,
+        trim: true
+      },
+      position: {
+        type: String,
+        trim: true
+      },
+      languages: [String],
+      eventTypes: [String],
+      bankDetails: {
+        accountName: {
+          type: String,
+          trim: true
+        },
+        accountNumber: {
+          type: String,
+          trim: true
+        },
+        bankName: {
+          type: String,
+          trim: true
+        },
+        ifscCode: {
+          type: String,
+          trim: true
+        },
+        upiId: {
+          type: String,
+          trim: true
+        }
+      },
+      socialLinks: [{
+        platform: {
+          type: String,
+          trim: true
+        },
+        url: {
+          type: String,
+          trim: true
+        }
+      }]
 }, {
   timestamps: true
 });

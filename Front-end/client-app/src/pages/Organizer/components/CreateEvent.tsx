@@ -729,7 +729,7 @@ const CreateEvent: React.FC = () => {
 
               {(eventMode === 'offline' || eventMode === 'hybrid') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-200 mb-2">
+                  <label className="block text-sm font-medium text-gray-200 mb-2">n
                     Venue
                   </label>
                   <input

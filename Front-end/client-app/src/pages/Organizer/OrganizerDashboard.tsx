@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { FaChartLine, FaUsers, FaCalendarPlus, FaBars, FaTimes, FaChevronRight, FaSignOutAlt } from 'react-icons/fa';
+import { FaChartLine, FaUsers, FaCalendarPlus, FaBars, FaTimes, FaChevronRight, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
 
 // Import your components
 import EventsList from './components/EventsList';
 import CreateEvent from './components/CreateEvent';
 import ManageParticipants from './components/ManageParticipants';
 import EventStatistics from './components/EventStatistics';
+import OrganizerProfile from './components/OrganizerProfile';
+
 
 const OrganizerDashboard: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -25,7 +27,7 @@ const OrganizerDashboard: React.FC = () => {
       <div className="bg-[#222839] border-b border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            <h1 className="text-xl font-semibold text-white">Control Room</h1>
+            <h1 className="text-xl font-semibold text-white">Manage Events</h1>
             
             {/* Navigation Links */}
             
@@ -42,6 +44,19 @@ const OrganizerDashboard: React.FC = () => {
                 Create Event
               </Link>
             )}
+            
+            {/* Profile Button */}
+            <Link
+              to="/organizer/dashboard/profile"
+              className={`flex items-center px-4 py-2 rounded-[10px] transition-all ${
+                location.pathname === '/organizer/dashboard/profile'
+                  ? 'bg-[#2a2f44] text-white'
+                  : 'text-gray-300 hover:bg-[#2a2f44]'
+              }`}
+            >
+              <FaUserCircle className="mr-2" />
+              Profile
+            </Link>
 
             {/* Logout Button */}
             <button
@@ -60,7 +75,7 @@ const OrganizerDashboard: React.FC = () => {
         <Routes>
           <Route path="/" element={<EventsList />} />
           <Route path="/create-event" element={<CreateEvent />} />
-  
+          <Route path="/profile" element={<OrganizerProfile />} />
         </Routes>
       </div>
     </div>

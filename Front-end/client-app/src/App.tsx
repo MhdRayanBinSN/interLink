@@ -38,7 +38,7 @@ const App: React.FC = () => {
           <Route path='/organizer/dashboard/*' element={<OrganizerDashboard />}/>
           <Route path='/organizer/dashboard/event/:eventId/*' element={<EventDashboard />}/>
           {/* Routes with navbar */}
-          <Route element={<MainLayout />}>
+          <Route element={<MainLayout />}>  
             <Route path="/events" element={<EventDiscovery />} />
             <Route path="/events/:id" element={<EventDetails />} />
             <Route path="/event/:id" element={<EventDetails />} />
