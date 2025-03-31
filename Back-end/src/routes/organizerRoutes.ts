@@ -26,4 +26,13 @@ router.put('/change-password', protect, changeOrganizerPassword); // New route
 // Add the refresh token route
 router.post('/refresh-token', protect, refreshToken);
 
+// Add this route
+router.get('/verify-token', protect, (req, res) => {
+  res.status(200).json({
+    success: true,
+    user: req.user,
+    message: 'Token is valid'
+  });
+});
+
 export default router;

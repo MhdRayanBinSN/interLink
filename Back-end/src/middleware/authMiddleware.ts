@@ -13,21 +13,15 @@ declare global {
 
 export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Log headers for debugging
-    console.log('Auth headers:', req.headers.authorization);
-    
+    // Get token from header
     let token;
+    const authHeader = req.headers.authorization || req.headers.Authorization;
     
-    // Check header for token
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-      // Log token for debugging (in development only)
-      console.log('Token extracted:', token);
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
     }
     
-    // Make sure token exists
     if (!token) {
-      console.log('No token provided');
       res.status(401).json({
         success: false,
         error: 'Not authorized, no token'
@@ -36,9 +30,12 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     }
     
     try {
-      // Determine which secret to use based on the route
+      // Check if this is an organizer route OR an event creation route
       const isOrganizerRoute = req.originalUrl.includes('/organizer');
-      const secret = isOrganizerRoute 
+      const isEventCreationRoute = req.originalUrl.includes('/events/createEvent');
+      
+      // Use organizer secret for both organizer routes AND event creation
+      const secret = (isOrganizerRoute || isEventCreationRoute) 
         ? process.env.ACCESS_TOKEN_SECRET as string
         : process.env.JWT_SECRET || 'supersecretkey';
       
@@ -46,7 +43,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       const decoded = jwt.verify(token, secret);
       
       // Add user to request
-      if (isOrganizerRoute) {
+      if (isOrganizerRoute || isEventCreationRoute) {
         req.user = (decoded as any).user;
       } else {
         req.user = await User.findById((decoded as any).id);
@@ -54,6 +51,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       
       next();
     } catch (error) {
+      console.error('Token verification failed:', error);
       res.status(401).json({
         success: false,
         error: 'Invalid token'

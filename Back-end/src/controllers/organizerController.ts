@@ -80,12 +80,13 @@ export const loginOrganizer = async (req: Request, res: Response): Promise<void>
                     }
                 },
                 process.env.ACCESS_TOKEN_SECRET as string,
-                { expiresIn: "15m" }
+                { expiresIn: "5h" } // Change from 15m to 5h for longer sessions
             );
 
             res.status(200).json({
                 success: true,
-                accessToken
+                accessToken,
+                organizerId: organizer._id // Add this line
             });
 
         } catch (bcryptError) {

@@ -29,6 +29,44 @@ interface Event {
   organizerId: string;
 }
 
+// Add these helper functions at the top of your component
+const formatEventDate = (startDateTime: string, endDateTime: string): string => {
+  const start = new Date(startDateTime);
+  const end = new Date(endDateTime);
+  
+  const startDate = start.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  // If same day event
+  if (start.toDateString() === end.toDateString()) {
+    return startDate;
+  }
+  
+  // Multi-day event
+  const endDate = end.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  return `${startDate} - ${endDate}`;
+};
+
+const calculateParticipants = (event: Event): number => {
+  return event.registeredParticipants ? event.registeredParticipants.length : 0;
+};
+
+const calculateRevenue = (event: Event): number => {
+  if (!event.bookings || event.bookings.length === 0) return 0;
+  
+  return event.bookings.reduce((total, booking) => {
+    return booking.bookingStatus === 'confirmed' ? total + (booking.totalAmount || 0) : total;
+  }, 0);
+};
+
 const EventsList: React.FC = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
@@ -159,14 +197,23 @@ const EventsList: React.FC = () => {
                       key={event._id} 
                       className="border-b border-gray-700 hover:bg-[#1d2132] cursor-pointer"
                       whileHover={{ backgroundColor: 'rgba(29, 33, 50, 0.8)' }}
+                      onClick={() => navigate(`/organizer/dashboard/event/${event._id}/details`)}
                     >
                       <td className="px-6 py-4 text-white">{event.title}</td>
-                      <td className="px-6 py-4 text-gray-300">{event.date}</td>
-                      <td className="px-6 py-4 text-gray-300">{event.registeredParticipants}</td>
-                      <td className="px-6 py-4 text-[#d7ff42]">₹{event.totalRevenue}</td>
+                      <td className="px-6 py-4 text-gray-300">
+                        {formatEventDate(event.startDateTime, event.endDateTime)}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300">
+                        {calculateParticipants(event)}
+                      </td>
+                      <td className="px-6 py-4 text-[#d7ff42]">
+                        ₹{calculateRevenue(event)}
+                      </td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 text-xs rounded-full ${getStatusColor(event.status)}`}>
-                          {event.status}
+                        <span className={`px-3 py-1 text-xs rounded-full ${getStatusColor(
+                          determineEventStatus(event.startDateTime, event.endDateTime)
+                        )}`}>
+                          {determineEventStatus(event.startDateTime, event.endDateTime)}
                         </span>
                       </td>
                       <td className="px-6 py-4">

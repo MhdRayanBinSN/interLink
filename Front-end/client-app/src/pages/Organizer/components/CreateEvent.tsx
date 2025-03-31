@@ -114,6 +114,70 @@ const FORM_STEPS = [
   { id: 7, title: 'About and Speaker Details' }, 
 ];
 
+// Update the getToken function
+const getToken = async (navigate: any) => {
+  const token = localStorage.getItem('organizer_token');
+  
+  if (!token) {
+    toast.error('Please login to create events');
+    navigate('/organizer/login', { state: { returnUrl: '/organizer/create-event' } });
+    return null;
+  }
+  
+  // Verify token validity by decoding it and checking expiration
+  try {
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+      throw new Error('Invalid token format');
+    }
+    
+    const payload = JSON.parse(atob(tokenParts[1]));
+    const expiry = payload.exp * 1000; // Convert to milliseconds
+    
+    // If token is expired or about to expire in the next minute, refresh it
+    if (expiry - Date.now() < 60000) {
+      console.log('Token expired or about to expire, refreshing...');
+      const response = await axios.post(`${serverUrl}/organizer/refresh-token`, {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.data && response.data.success && response.data.accessToken) {
+        // Save the new token
+        localStorage.setItem('organizer_token', response.data.accessToken);
+        console.log('Token refreshed successfully');
+        return response.data.accessToken;
+      }
+    }
+    
+    console.log('Using existing token');
+    return token;
+  } catch (error) {
+    console.error('Token validation error:', error);
+    // If there's an error with token validation, try to refresh anyway
+    try {
+      const response = await axios.post(`${serverUrl}/organizer/refresh-token`, {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.data && response.data.success && response.data.accessToken) {
+        localStorage.setItem('organizer_token', response.data.accessToken);
+        return response.data.accessToken;
+      }
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError);
+      toast.error('Your session has expired. Please login again.');
+      localStorage.removeItem('organizer_token');
+      navigate('/organizer/login', { state: { returnUrl: '/organizer/create-event' } });
+      return null;
+    }
+    return null;
+  }
+};
+
 const CreateEvent: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -177,92 +241,90 @@ const CreateEvent: React.FC = () => {
   const eventMode = watch('mode');
   const entryType = watch('entryType');
 
+  // Add debug logging to your onSubmit function
   const onSubmit = async (data: EventFormData) => {
     try {
-        setIsSubmitting(true);
-        
-        // Get token and ensure it exists
-        const token = localStorage.getItem('organizer_token');
-        
-        if (!token) {
-            toast.error('Please login to create an event');
-            navigate('/organizer/login');
-            return;
-        }
+      setIsSubmitting(true);
+      
+      // Get fresh token right before submission
+      const token = await getToken(navigate);
+      
+      if (!token) {
+        console.log('No token available for request');
+        return; // The getToken function will handle the redirect
+      }
 
-        console.log('Token before API call:', token.substring(0, 15) + '...');
-        
-        // Create form data
-        const formData = new FormData();
-        
-        // Handle banner image upload
-        if (data.bannerImage && data.bannerImage[0]) {
-          formData.append('bannerImage', data.bannerImage[0]);
-        }
-        
-        // Handle speaker images
+      console.log('Token obtained for request:', token.substring(0, 15) + '...');
+      
+      // Create form data
+      const formData = new FormData();
+      
+      // Handle banner image upload
+      if (data.bannerImage && data.bannerImage[0]) {
+        formData.append('bannerImage', data.bannerImage[0]);
+      }
+      
+      // Handle speaker images
+      if (data.speakers && data.speakers.length > 0) {
         data.speakers.forEach((speaker, index) => {
           if (speaker.image && speaker.image[0]) {
             formData.append(`speakerImages`, speaker.image[0]);
             formData.append(`speakerIndex`, index.toString());
           }
         });
-        
-        // Clean event data for JSON
-        const cleanEventData = {
-          ...data,
-          bannerImage: undefined,
-          speakers: data.speakers.map(s => ({
-            ...s,
-            image: undefined 
-          })),
-          aboutEvent: data.aboutEvent || "<p>No description provided</p>"
-        };
-        
-        // Add event data to form
-        formData.append('eventData', JSON.stringify(cleanEventData));
+      }
+      
+      // Clean event data for JSON
+      const cleanEventData = {
+        ...data,
+        bannerImage: undefined,
+        speakers: data.speakers?.map(s => ({
+          ...s,
+          image: undefined 
+        })) || [],
+        aboutEvent: data.aboutEvent || "<p>No description provided</p>"
+      };
+      
+      // Add event data to form
+      formData.append('eventData', JSON.stringify(cleanEventData));
 
-        // Make API request with proper URL and token
-        const response = await axios.post(
-            `${serverUrl}/events/createEvent`, 
-            
-            formData,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${token}`
-                }
-            }
-        );
-
-        if (response.data.success) {
-            toast.success('Event created successfully!');
-            navigate('/organizer/dashboard');
-        } else {
-            // Handle non-success response
-            toast.error(response.data.error || 'Failed to create event');
+      console.log('Request URL:', `${serverUrl}/events/createEvent`);
+      console.log('Authorization header:', `Bearer ${token.substring(0, 15)}...`);
+      
+      // Make API request with proper URL and token
+      const response = await axios.post(
+        `${serverUrl}/events/createEvent`, 
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
+          }
         }
+      );
 
+      if (response.data.success) {
+        toast.success('Event created successfully!');
+        navigate('/organizer/dashboard');
+      } else {
+        toast.error(response.data.error || 'Failed to create event');
+      }
     } catch (err: any) {
-        console.error('Full error details:', err);
-        
-        if (err.response?.status === 401) {
-            // Clear token and redirect to login
-            toast.error('Your session has expired. Please login again.');
-            localStorage.removeItem('organizer_token');
-            navigate('/organizer/login', { replace: true });
-        } else if (err.response?.status === 404) {
-            // API endpoint not found
-            toast.error('API endpoint not found. Please check server configuration.');
-            console.error('API Error - Path not found:', err.response?.config?.url);
-        } else {
-            // Other errors
-            toast.error(err.response?.data?.error || 'Failed to create event');
-        }
+      console.error('Event creation error:', err);
+      console.error('Error details:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      
+      if (err.response?.status === 401) {
+        toast.error('Authentication failed. Logging you in again...');
+        localStorage.removeItem('organizer_token');
+        navigate('/organizer/login', { state: { returnUrl: '/organizer/create-event' } });
+      } else {
+        toast.error(err.response?.data?.error || 'Failed to create event');
+      }
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
-};
+  };
 
   const nextStep = async () => {
     console.log('Current step:', currentStep);
@@ -334,18 +396,36 @@ const CreateEvent: React.FC = () => {
     }
   }, [watch('bannerImage')]);
 
-  // Add this at the beginning of your component
+  // Modify the initial auth check useEffect
   useEffect(() => {
     const verifyAuth = async () => {
       const token = localStorage.getItem('organizer_token');
       
       if (!token) {
         toast.error('Please login to create events');
-        navigate('/organizer/login', { replace: true });
+        navigate('/organizer/login', { state: { returnUrl: '/organizer/create-event' } });
         return;
       }
       
-      
+      // Verify token validity with backend
+      try {
+        const response = await axios.get(`${serverUrl}/organizer/current`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.data || !response.data.id) {
+          toast.error('Your session has expired. Please login again.');
+          localStorage.removeItem('organizer_token');
+          navigate('/organizer/login', { state: { returnUrl: '/organizer/create-event' } });
+        }
+      } catch (error) {
+        console.error('Auth verification error:', error);
+        toast.error('Authentication failed. Please login again.');
+        localStorage.removeItem('organizer_token');
+        navigate('/organizer/login', { state: { returnUrl: '/organizer/create-event' } });
+      }
     };
     
     verifyAuth();
@@ -742,7 +822,7 @@ const CreateEvent: React.FC = () => {
 
               {(eventMode === 'offline' || eventMode === 'hybrid') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-200 mb-2">n
+                  <label className="block text-sm font-medium text-gray-200 mb-2">
                     Venue
                   </label>
                   <input
