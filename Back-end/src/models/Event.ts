@@ -46,6 +46,7 @@ export interface IEvent extends Document {
   organizerEmail: string;
   organizerPhone: string;
   organizationName?: string;
+  organizerId: mongoose.Schema.Types.ObjectId;
   
   // Schedule & Location
   startDateTime: Date;
@@ -129,6 +130,11 @@ const eventSchema = new Schema<IEvent>(
     organizationName: {
       type: String,
       trim: true
+    },
+    organizerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organizer',
+      required: true
     },
     
     // Schedule & Location

@@ -1,15 +1,13 @@
 import { Event } from "../models/Event";
-import express from "express"
-
-
+import express from "express";
 
 declare global {
     namespace Express {
-      interface Request {
-        files?: {
-          [fieldname: string]: Express.Multer.File[]
+        interface Request {
+            files?: {
+                [fieldname: string]: Express.Multer.File[];
+            };
         }
-      }
     }
 }
 
@@ -19,32 +17,35 @@ export const createEvent = async (req: express.Request, res: express.Response) =
         const organizerId = req.user?.id;
         
         if (!organizerId) {
-            console.log(res.status(401).json({
+          res.status(401).json({
                 success: false,
                 error: 'Not authorized - organizer ID missing'
-            }))
+            });
         }
 
         // Check if eventData exists in request body
         if (!req.body.eventData) {
-           console.log( res.status(400).json({
+             res.status(400).json({
                 success: false,
                 error: 'Event data is required'
-            }))
+            });
         }
         
         const eventData = JSON.parse(req.body.eventData);
         console.log('Parsed event data:', eventData);
         
-        // Add organizerId to event data
+        // Force add organizerId to event data
         eventData.organizerId = organizerId;
+        console.log('Added organizerId to event data:', organizerId);
         
+        // Handle file uploads if any
         if (req.files) {
+            // Your existing file handling code
             // Add banner image URL
             if (req.files.bannerImage) {
                 eventData.bannerImageUrl = req.files.bannerImage[0].path;
             }
-            
+
             // Add speaker image URLs
             if (req.files.speakerImages && eventData.speakers) {
                 req.files.speakerImages.forEach((file, index) => {
@@ -53,14 +54,18 @@ export const createEvent = async (req: express.Request, res: express.Response) =
                     }
                 });
             }
-            
+
             // Add resource URLs
             if (req.files.resources) {
                 eventData.resourceUrls = req.files.resources.map(file => file.path);
             }
         }
+
+        console.log('Creating event with data:', eventData);
         
+        // Create the event in database
         const event = await Event.create(eventData);
+        console.log('Created event:', event._id);
         
         res.status(201).json({
             success: true,
@@ -74,7 +79,7 @@ export const createEvent = async (req: express.Request, res: express.Response) =
             error: error.message || 'Error creating event'
         });
     }
-}
+};
 
 export const getAllEvents = async (req: express.Request, res: express.Response) => {
     try {
@@ -84,20 +89,20 @@ export const getAllEvents = async (req: express.Request, res: express.Response) 
             count: eventsData.length,
             data: eventsData
         });
-    } catch (error : any) {
+    } catch (error: any) {
         console.error('Error Getting event:', error);
-        
+
         res.status(500).json({
             success: false,
             error: error.message || 'Error getting event'
         });
     }
-        
-}
+};
+
 export const getEventById = async (req: express.Request, res: express.Response): Promise<void> => {
     try {
         const { id } = req.params;
-        
+
         if (!id) {
             res.status(400).json({
                 success: false,
@@ -105,9 +110,9 @@ export const getEventById = async (req: express.Request, res: express.Response):
             });
             return;
         }
-        
+
         const eventData = await Event.findById(id);
-        
+
         if (!eventData) {
             res.status(404).json({
                 success: false,
@@ -115,41 +120,45 @@ export const getEventById = async (req: express.Request, res: express.Response):
             });
             return;
         }
-        
+
         res.status(200).json({
             success: true,
             data: eventData
         });
-    } catch (error : any) {
+    } catch (error: any) {
         console.error('Error getting event by ID:', error);
-        
+
         res.status(500).json({
             success: false,
             error: error.message || 'Error getting event'
         });
     }
-}
+};
 
 export const getEventsByOrganizer = async (req: express.Request, res: express.Response): Promise<void> => {
     try {
-        const organizerId = req.params.organizerId;
-        
+        const { organizerId } = req.params;
+
+        console.log('Fetching events for organizer:', organizerId);
+
         if (!organizerId) {
             res.status(400).json({
                 success: false,
-                error: 'Organizer ID is required'
+                message: 'Organizer ID is required'
             });
             return;
         }
 
-        // Find all events for this organizer with populated fields
-        const events = await Event.find({ organizerId })
-            .populate('registeredParticipants', 'name email')
-            .populate({
-                path: 'bookings',
-                select: 'bookingStatus ticketCount totalAmount'
-            })
-            .sort({ startDateTime: -1 });
+        // First try to find events by the ID directly from request params
+        let events = await Event.find({ organizerId });
+
+        // If no events found and user is authenticated, try with the authenticated user's ID
+        if (events.length === 0 && req.user && req.user.id) {
+            console.log('No events found with params ID, trying with authenticated user ID:', req.user.id);
+            events = await Event.find({ organizerId: req.user.id });
+        }
+
+        console.log(`Found ${events.length} events`);
 
         res.status(200).json({
             success: true,
@@ -157,10 +166,56 @@ export const getEventsByOrganizer = async (req: express.Request, res: express.Re
             data: events
         });
     } catch (error: any) {
-        console.error('Error getting organizer events:', error);
+        console.error('Error fetching events by organizer:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Error fetching organizer events'
+            message: error.message || 'Error fetching events'
+        });
+    }
+};
+
+export const my_events = async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+        // Get organizerId from authenticated user
+        const organizerId = req.user?.id;
+
+        if (!organizerId) {
+            res.status(401).json({
+                success: false,
+                message: 'Not authenticated'
+            });
+            return;
+        }
+
+        console.log('Fetching events for authenticated organizer:', organizerId);
+        console.log('Type of organizerId:', typeof organizerId);
+
+        let events = await Event.find({ organizerId: organizerId.toString() });
+
+        console.log(`Found ${events.length} events for authenticated organizer`);
+        //case sesnsitive search
+        /*
+        if (events.length === 0) {
+            console.log('Trying case-insensitive search');
+            const allEvents = await Event.find({});
+            
+            console.log('All events:', allEvents.map(e => ({
+                id: e._id, 
+                title: e.title,
+                organizerId: e.organizerId
+            })));
+        }
+*/
+        res.status(200).json({
+            success: true,
+            count: events.length,
+            data: events
+        });
+    } catch (error) {
+        console.error('Error fetching events for authenticated user:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching events'
         });
     }
 };

@@ -7,13 +7,13 @@ import { toast } from 'react-toastify';
 // Import your components
 import EventsList from './components/EventsList';
 import CreateEvent from './components/CreateEvent';
-
 import OrganizerProfile from './components/OrganizerProfile';
 
 const OrganizerDashboard: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     // Debug authentication state
@@ -39,6 +39,17 @@ const OrganizerDashboard: React.FC = () => {
       }
     }
   }, []);
+
+  // Effect to handle newly created events
+  useEffect(() => {
+    if (location.state?.eventCreated) {
+      console.log('Event created, refreshing events list');
+      setRefreshKey(prev => prev + 1);
+      
+      // Clear state to prevent refresh on page reload
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleLogout = () => {
     localStorage.removeItem('organizer_token');
@@ -98,8 +109,9 @@ const OrganizerDashboard: React.FC = () => {
 
       {/* Content Area */}
       <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6 text-white">Dashboard</h1>
         <Routes>
-          <Route path="/" element={<EventsList />} />
+          <Route path="/" element={<EventsList refreshKey={refreshKey} />} />
           <Route path="/create-event" element={<CreateEvent />} />
           <Route path="/profile" element={<OrganizerProfile />} />
         </Routes>

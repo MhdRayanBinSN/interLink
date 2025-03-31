@@ -304,8 +304,21 @@ const CreateEvent: React.FC = () => {
       );
 
       if (response.data.success) {
+        console.log('Event created successfully:', response.data.data);
+        
         toast.success('Event created successfully!');
-        navigate('/organizer/dashboard');
+        
+        // Store the new event ID for reference
+        const newEventId = response.data.data._id;
+        localStorage.setItem('lastCreatedEventId', newEventId);
+        
+        // Redirect to dashboard with state to trigger refresh
+        navigate('/organizer/dashboard', { 
+          state: { 
+            eventCreated: true,
+            eventId: newEventId 
+          }
+        });
       } else {
         toast.error(response.data.error || 'Failed to create event');
       }

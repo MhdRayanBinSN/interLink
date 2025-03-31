@@ -1,5 +1,5 @@
 import express from "express";
-import { createEvent, getAllEvents, getEventById ,getEventsByOrganizer} from "../controllers/eventController";
+import { createEvent, getAllEvents, getEventById ,getEventsByOrganizer, my_events} from "../controllers/eventController";
 import { uploadFiles } from "../middleware/fileUpload";
 import { protect } from "../middleware/authMiddleware";
 
@@ -14,5 +14,7 @@ router.get('/getEventById/:id', getEventById);
 router.post('/createEvent',protect, uploadFiles, createEvent);
 router.get('/organizer/:organizerId', protect, getEventsByOrganizer);
 
+// Add this new route for retrieving events by the authenticated organizer
+router.get('/my-events', protect, my_events)
 
 export default router;

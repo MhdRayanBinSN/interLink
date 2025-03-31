@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Users, DollarSign, Tag, MapPin, Clock } from 'lucide-react';
 import axios from 'axios';
 import { serverUrl } from '../../../helpers/Constant';
 import { toast } from 'react-toastify';
@@ -29,34 +28,32 @@ interface Event {
   organizerId: string;
 }
 
-// Add these helper functions at the top of your component
+interface EventsListProps {
+  refreshKey?: number;
+}
+
+// Helper functions
 const formatEventDate = (startDateTime: string, endDateTime: string): string => {
   const start = new Date(startDateTime);
   const end = new Date(endDateTime);
   
   const startDate = start.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric',
-    year: 'numeric'
+    month: 'short', day: 'numeric', year: 'numeric'
   });
   
-  // If same day event
   if (start.toDateString() === end.toDateString()) {
     return startDate;
   }
   
-  // Multi-day event
   const endDate = end.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric',
-    year: 'numeric'
+    month: 'short', day: 'numeric', year: 'numeric'
   });
   
   return `${startDate} - ${endDate}`;
 };
 
 const calculateParticipants = (event: Event): number => {
-  return event.registeredParticipants ? event.registeredParticipants.length : 0;
+  return event.registeredParticipants?.length || 0;
 };
 
 const calculateRevenue = (event: Event): number => {
@@ -67,52 +64,103 @@ const calculateRevenue = (event: Event): number => {
   }, 0);
 };
 
-const EventsList: React.FC = () => {
+const EventsList: React.FC<EventsListProps> = ({ refreshKey = 0 }) => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    fetchEvents();
+  }, [navigate, refreshKey]);
+  
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('organizer_token');
+      const organizerId = localStorage.getItem('organizerId');
+
+      console.log('Attempting to fetch events, organizerId:', organizerId);
+
+      if (!token || !organizerId) {
+        toast.error('Authentication required. Please login again.');
+        navigate('/organizer/login');
+        return;
+      }
+
+      // Try all endpoints to find events
+      let eventsFound = false;
+
+      // First try my-events endpoint (most reliable)
       try {
-        const token = localStorage.getItem('organizer_token');
-        const organizerId = localStorage.getItem('organizerId');
-
-        if (!token || !organizerId) {
-          navigate('/organizer/login');
-          return;
-        }
-
-        const response = await axios.get(
-          `${serverUrl}/events/organizer/${organizerId}`, 
+        console.log(`Calling API: ${serverUrl}/events/my-events`);
+        const myEventsResponse = await axios.get(
+          `${serverUrl}/events/my-events`, 
           {
             headers: {
-              Authorization: `Bearer ${token}`
+              'Authorization': `Bearer ${token}`
             }
           }
         );
 
-        if (response.data.success) {
-          setEvents(response.data.data);
-        }
-      } catch (err: any) {
-        if (err.response?.status === 401) {
-          toast.error('Session expired. Please login again.');
-          localStorage.removeItem('organizer_token');
-          navigate('/organizer/login');
+        if (myEventsResponse.data.success && myEventsResponse.data.data.length > 0) {
+          console.log('Events found with my-events endpoint:', myEventsResponse.data.data.length);
+          setEvents(myEventsResponse.data.data);
+          eventsFound = true;
         } else {
-          setError(err.response?.data?.message || 'Failed to fetch events');
-          toast.error('Failed to fetch events');
+          console.log('No events found with my-events endpoint');
         }
-      } finally {
-        setLoading(false);
+      } catch (myEventsError) {
+        console.log('Error with my-events endpoint:', myEventsError);
       }
-    };
 
-    fetchEvents();
-  }, [navigate]);
+      // If no events found, try with organizerId
+      if (!eventsFound) {
+        try {
+          console.log(`Calling API: ${serverUrl}/events/organizer/${organizerId}`);
+          const orgEventsResponse = await axios.get(
+            `${serverUrl}/events/organizer/${organizerId}`, 
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
 
+          if (orgEventsResponse.data.success && orgEventsResponse.data.data.length > 0) {
+            console.log('Events found with organizer endpoint:', orgEventsResponse.data.data.length);
+            setEvents(orgEventsResponse.data.data);
+            eventsFound = true;
+          } else {
+            console.log('No events found with organizer endpoint');
+          }
+        } catch (orgEventsError) {
+          console.log('Error with organizer endpoint:', orgEventsError);
+        }
+      }
+
+      // If still no events found, check if we need to create events
+      if (!eventsFound) {
+        console.log('No events found with any endpoint');
+        setEvents([]);
+      }
+    } catch (err: any) {
+      console.error('Event fetch error:', err);
+      
+      if (err.response?.status === 401) {
+        toast.error('Session expired. Please login again.');
+        localStorage.removeItem('organizer_token');
+        localStorage.removeItem('organizerId');
+        navigate('/organizer/login');
+      } else {
+        setError('Failed to fetch events');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Determine event status (upcoming, ongoing, completed)
   const determineEventStatus = (startDate: string, endDate: string): Event['status'] => {
     const now = new Date();
     const start = new Date(startDate);
@@ -123,18 +171,14 @@ const EventsList: React.FC = () => {
     return 'ongoing';
   };
 
+  // Get status display color
   const getStatusColor = (status: Event['status']) => {
     switch (status) {
-      case 'upcoming':
-        return 'bg-blue-500/20 text-blue-500';
-      case 'ongoing':
-        return 'bg-green-500/20 text-green-500';
-      case 'completed':
-        return 'bg-gray-500/20 text-gray-400';
-      case 'cancelled':
-        return 'bg-red-500/20 text-red-500';
-      default:
-        return 'bg-gray-500/20 text-gray-400';
+      case 'upcoming': return 'bg-blue-500/20 text-blue-500';
+      case 'ongoing': return 'bg-green-500/20 text-green-500';
+      case 'completed': return 'bg-gray-500/20 text-gray-400';
+      case 'cancelled': return 'bg-red-500/20 text-red-500';
+      default: return 'bg-gray-500/20 text-gray-400';
     }
   };
 
@@ -142,14 +186,6 @@ const EventsList: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#d7ff42]"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-500/10 text-red-400 p-4 rounded-lg">
-        {error}
       </div>
     );
   }
