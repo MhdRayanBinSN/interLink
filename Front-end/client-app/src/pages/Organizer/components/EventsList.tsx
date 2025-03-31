@@ -80,7 +80,10 @@ const EventsList: React.FC<EventsListProps> = ({ refreshKey = 0 }) => {
       const token = localStorage.getItem('organizer_token');
       const organizerId = localStorage.getItem('organizerId');
 
-      console.log('Attempting to fetch events, organizerId:', organizerId);
+      console.log('Attempting to fetch events with token and organizerId:', { 
+        organizerId, 
+        tokenExists: !!token 
+      });
 
       if (!token || !organizerId) {
         toast.error('Authentication required. Please login again.');
@@ -88,73 +91,45 @@ const EventsList: React.FC<EventsListProps> = ({ refreshKey = 0 }) => {
         return;
       }
 
-      // Try all endpoints to find events
-      let eventsFound = false;
-
-      // First try my-events endpoint (most reliable)
+      // Try direct API call with better error handling
       try {
-        console.log(`Calling API: ${serverUrl}/events/my-events`);
-        const myEventsResponse = await axios.get(
-          `${serverUrl}/events/my-events`, 
+        console.log(`Calling API: ${serverUrl}/events/organizer/${organizerId}`);
+        
+        const response = await axios.get(
+          `${serverUrl}/events/organizer/${organizerId}`, 
           {
             headers: {
-              'Authorization': `Bearer ${token}`
+              Authorization: `Bearer ${token}`
             }
           }
         );
 
-        if (myEventsResponse.data.success && myEventsResponse.data.data.length > 0) {
-          console.log('Events found with my-events endpoint:', myEventsResponse.data.data.length);
-          setEvents(myEventsResponse.data.data);
-          eventsFound = true;
-        } else {
-          console.log('No events found with my-events endpoint');
+        console.log('API Response:', response.data);
+
+        if (response.data.success) {
+          console.log('Events found:', response.data.data.length);
+          setEvents(response.data.data);
+          return;
         }
-      } catch (myEventsError) {
-        console.log('Error with my-events endpoint:', myEventsError);
-      }
-
-      // If no events found, try with organizerId
-      if (!eventsFound) {
-        try {
-          console.log(`Calling API: ${serverUrl}/events/organizer/${organizerId}`);
-          const orgEventsResponse = await axios.get(
-            `${serverUrl}/events/organizer/${organizerId}`, 
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            }
-          );
-
-          if (orgEventsResponse.data.success && orgEventsResponse.data.data.length > 0) {
-            console.log('Events found with organizer endpoint:', orgEventsResponse.data.data.length);
-            setEvents(orgEventsResponse.data.data);
-            eventsFound = true;
-          } else {
-            console.log('No events found with organizer endpoint');
-          }
-        } catch (orgEventsError) {
-          console.log('Error with organizer endpoint:', orgEventsError);
+      } catch (error) {
+        console.error('Error fetching events by organizer ID:', error);
+        
+        // If unauthorized, redirect to login
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          toast.error('Your session has expired. Please login again.');
+          localStorage.removeItem('organizer_token');
+          localStorage.removeItem('organizerId');
+          navigate('/organizer/login');
+          return;
         }
       }
-
-      // If still no events found, check if we need to create events
-      if (!eventsFound) {
-        console.log('No events found with any endpoint');
-        setEvents([]);
-      }
+      
+      // Set empty events if nothing found
+      console.log('No events found');
+      setEvents([]);
     } catch (err: any) {
       console.error('Event fetch error:', err);
-      
-      if (err.response?.status === 401) {
-        toast.error('Session expired. Please login again.');
-        localStorage.removeItem('organizer_token');
-        localStorage.removeItem('organizerId');
-        navigate('/organizer/login');
-      } else {
-        setError('Failed to fetch events');
-      }
+      setError(err.message || 'Failed to fetch events');
     } finally {
       setLoading(false);
     }
