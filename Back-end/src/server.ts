@@ -7,7 +7,7 @@ import eventRoutes from './routes/eventRoutes';
 import organizerRoutes from './routes/organizerRoutes';
 import  userRoutes from './routes/userRoutes';
 import bookingRoutes from './routes/bookingRoutes';
-
+import participantRoutes from './routes/participantRoutes';
 
 dotenv.config();
 
@@ -26,6 +26,9 @@ app.use('/api/organizer', organizerRoutes);  // This needs to match your axios c
 app.use('/api/events', eventRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/participants', participantRoutes);
+
+
 
 const PORT = process.env.PORT || 5001;
 

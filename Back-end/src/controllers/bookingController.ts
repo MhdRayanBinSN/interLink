@@ -176,71 +176,102 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
 // Get user's bookings
 export const getUserBookings = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
     
-    // First, lean() will convert Mongoose documents to plain JavaScript objects
+    // Use explicit typing for the populated booking
+    interface PopulatedBooking {
+      _id: mongoose.Types.ObjectId;
+      user: mongoose.Types.ObjectId;
+      event: {
+        _id: mongoose.Types.ObjectId;
+        title: string;
+        startDate: Date;
+        endDate: Date;
+        startTime: string;
+        venue: string;
+        price: number;
+        status: string;
+        bannerImage?: string;
+      };
+      name: string;
+      email: string;
+      phone: string;
+      ticketId: string;
+      attendeeType: string;
+      additionalParticipants: Array<{
+        name: string;
+        email: string;
+      }>;
+      ticketCount: number;
+      totalAmount: number;
+      createdAt: Date;
+      attendanceStatus?: string;
+      bookingStatus: string;
+    }
+    
+    // Cast the result to our populated type
     const bookings = await Booking.find({ user: userId })
       .populate({
         path: 'event',
-        select: 'title bannerImageUrl startDateTime endDateTime venue mode'
+        select: 'title startDate endDate startTime venue price status bannerImage'
       })
       .sort({ createdAt: -1 })
-      .lean();
+      .lean() as unknown as PopulatedBooking[];
     
-    // Transform bookings to match frontend TicketData format
-    const tickets = bookings.map(booking => {
-      // Make sure the event object exists and has the needed properties
-      if (!booking.event || typeof booking.event !== 'object') {
-        return null;
-      }
+    const formattedBookings = bookings.map(booking => {
+      const eventStartDate = booking.event.startDate;
+      let status = 'upcoming';
+      const today = new Date();
       
-      // Safely access event properties (TypeScript treats event as any here)
-      const event = booking.event as any;
-      let eventDate: Date;
-      
-      try {
-        eventDate = new Date(event.startDateTime || Date.now());
-      } catch (e) {
-        eventDate = new Date();
-      }
-      
-      // Determine status - fix the typo from 'venur' to 'event'
-      let status: 'upcoming' | 'completed' | 'cancelled' = 'upcoming';
-      if (booking.bookingStatus === 'cancelled') {
-        status = 'cancelled';
-      } else if (event.endDateTime && new Date(event.endDateTime) < new Date()) {
+      if (new Date(eventStartDate) < today) {
         status = 'completed';
       }
       
+      if (booking.bookingStatus === 'cancelled') {
+        status = 'cancelled';
+      }
+      
+      // Ensure we include ALL participant information
+      const additionalParticipants = booking.additionalParticipants || [];
+      
       return {
         id: booking._id,
-        eventId: event._id,
-        eventName: event.title || 'Unnamed Event',
-        eventDate: event.startDateTime || booking.createdAt,
-        eventTime: eventDate.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        }),
-        eventLocation: event.venue || (event.mode === 'online' ? 'Online' : 'TBA'),
-        ticketType: booking.attendeeType === 'student' ? 'Student' : 
-                  booking.attendeeType === 'professional' ? 'Professional' : 'General',
+        bookingId: booking._id,
+        eventId: booking.event._id,
+        eventName: booking.event.title,
+        eventDate: booking.event.startDate,
+        eventTime: booking.event.startTime,
+        eventLocation: booking.event.venue,
+        ticketType: booking.attendeeType,
         ticketNumber: booking.ticketId,
         price: booking.totalAmount,
         purchaseDate: booking.createdAt,
-        status
+        status: status,
+        // Main participant (booking owner)
+        name: booking.name,
+        email: booking.email,
+        phone: booking.phone,
+        attendeeType: booking.attendeeType,
+        attendanceStatus: booking.attendanceStatus || 'not_marked',
+        // Include additional participants explicitly in the response
+        additionalParticipants: additionalParticipants.map(p => ({
+          name: p.name,
+          email: p.email
+        }))
       };
-    }).filter(Boolean); // Remove any null results
+    });
     
     res.status(200).json({
       success: true,
-      data: tickets
+      count: formattedBookings.length,
+      data: formattedBookings
     });
+    
   } catch (error: any) {
     console.error('Error fetching user bookings:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Error retrieving bookings'
+      error: error.message || 'Error fetching bookings'
     });
   }
 };

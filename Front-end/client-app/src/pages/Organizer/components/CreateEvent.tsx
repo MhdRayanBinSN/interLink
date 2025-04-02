@@ -1158,7 +1158,7 @@ const CreateEvent: React.FC = () => {
         <label className="block text-sm font-medium text-gray-200 mb-4">
           About This Event
         </label>
-        {/*<div className="bg-[#1d2132] border border-gray-700 rounded-[10px]">
+        <div className="bg-[#1d2132] border border-gray-700 rounded-[10px]">
           <Controller
             control={control}
             name="aboutEvent"  
@@ -1180,7 +1180,7 @@ const CreateEvent: React.FC = () => {
               />
             )}
           />
-        </div>*/}
+        </div>  
         {errors.aboutEvent && (
           <p className="mt-1 text-sm text-red-500">{errors.aboutEvent.message}</p>
         )}

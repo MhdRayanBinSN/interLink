@@ -16,6 +16,7 @@ export interface IBooking extends Document {
   totalAmount: number;
   paymentStatus: 'pending' | 'completed' | 'failed';
   bookingStatus: 'confirmed' | 'cancelled' | 'pending';
+  attendanceStatus?: 'present' | 'absent' | 'not_marked';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,6 +76,11 @@ const bookingSchema: Schema = new Schema({
     type: String,
     enum: ['confirmed', 'cancelled', 'pending'],
     default: 'confirmed'
+  },
+  attendanceStatus: {
+    type: String,
+    enum: ['present', 'absent', 'not_marked'],
+    default: 'not_marked'
   }
 }, {
   timestamps: true

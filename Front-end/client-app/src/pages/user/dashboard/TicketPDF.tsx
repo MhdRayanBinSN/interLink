@@ -1,22 +1,33 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import QRCode from 'qrcode';
+
+// Register fonts if needed
+Font.register({
+  family: 'Roboto',
+  fonts: [
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf', fontWeight: 300 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf', fontWeight: 400 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-medium-webfont.ttf', fontWeight: 500 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf', fontWeight: 700 },
+  ]
+});
 
 // Define styles outside of the component
 const styles = StyleSheet.create({
   page: {
     padding: 30,
-    backgroundColor: '#ffffff'
+    backgroundColor: '#ffffff',
+    fontFamily: 'Roboto'
   },
   header: {
     marginBottom: 20,
     borderBottom: 1, // Fixed border syntax
     borderBottomColor: '#000',
-    paddingBottom: 10
-  },
-  headerText: {
+    paddingBottom: 10,
     fontSize: 24,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    color: '#333'
   },
   title: {
     fontSize: 18,
@@ -48,6 +59,64 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     marginBottom: 5
+  },
+  subheader: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: '#7557e1',
+    fontWeight: 500
+  },
+  eventInfo: {
+    marginBottom: 20,
+    fontSize: 12,
+    color: '#555'
+  },
+  eventDetail: {
+    marginBottom: 5
+  },
+  table: {
+    display: 'flex',
+    width: 'auto',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderColor: '#bfbfbf',
+    marginBottom: 10
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#bfbfbf',
+    minHeight: 25,
+    alignItems: 'center'
+  },
+  tableRowHeader: {
+    backgroundColor: '#f0f0f0',
+    fontWeight: 700
+  },
+  tableCol: {
+    padding: 5
+  },
+  nameCol: {
+    width: '35%',
+    borderRightWidth: 1,
+    borderRightColor: '#bfbfbf'
+  },
+  emailCol: {
+    width: '40%',
+    borderRightWidth: 1,
+    borderRightColor: '#bfbfbf'
+  },
+  typeCol: {
+    width: '25%'
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 30,
+    right: 30,
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center'
   }
 });
 
@@ -100,7 +169,7 @@ export const TicketPDF: React.FC<TicketPDFProps> = ({ ticket }) => {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.headerText}>Event Ticket</Text>
+          <Text style={styles.header}>Event Ticket</Text>
         </View>
 
         <View style={styles.section}>
@@ -142,4 +211,89 @@ export const TicketPDF: React.FC<TicketPDFProps> = ({ ticket }) => {
   );
 };
 
-export default TicketPDF
+interface ParticipantsPDFProps {
+  ticket: {
+    eventName: string;
+    eventDate: string;
+    eventTime: string;
+    ticketNumber: string;
+    participants: {
+      name: string;
+      email: string;
+      attendeeType: string;
+      attendanceStatus?: string;
+    }[];
+    status: string;
+  };
+  activeTab: string;
+}
+
+export const ParticipantsPDF: React.FC<ParticipantsPDFProps> = ({ ticket, activeTab }) => (
+  <>
+    {activeTab === 'participants' && (
+      <>
+        <div className="bg-[#1d2132] rounded-lg overflow-hidden">
+          {ticket.participants.length === 0 ? (
+            <div className="p-6 text-center text-gray-400">
+              <p>No participant information available for this ticket</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="px-4 py-3 text-left text-gray-300">#</th>
+                  <th className="px-4 py-3 text-left text-gray-300">Name</th>
+                  <th className="px-4 py-3 text-left text-gray-300">Email</th>
+                  <th className="px-4 py-3 text-left text-gray-300">Type</th>
+                  {ticket.status !== 'upcoming' && (
+                    <th className="px-4 py-3 text-left text-gray-300">Attendance</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {ticket.participants.map((participant, index) => (
+                  <tr key={index} className="border-b border-gray-700/50 last:border-0">
+                    <td className="px-4 py-3 text-gray-400">{index + 1}</td>
+                    <td className="px-4 py-3 text-white">{participant.name}</td>
+                    <td className="px-4 py-3 text-gray-400">{participant.email}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        participant.attendeeType === 'student' 
+                          ? 'bg-blue-500/20 text-blue-400' 
+                          : participant.attendeeType === 'professional' 
+                          ? 'bg-purple-500/20 text-purple-400' 
+                          : 'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {participant.attendeeType}
+                      </span>
+                    </td>
+                    {ticket.status !== 'upcoming' && (
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          participant.attendanceStatus === 'present' 
+                            ? 'bg-green-500/20 text-green-400' 
+                            : participant.attendanceStatus === 'absent' 
+                            ? 'bg-red-500/20 text-red-400' 
+                            : 'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {participant.attendanceStatus || 'not marked'}
+                        </span>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        
+        {/* Add a note about verification */}
+        <div className="mt-4 text-sm text-gray-400 bg-[#1d2132] p-3 rounded-lg border border-gray-700/50">
+          <p>These are the registered participants for this booking. Present this information during event check-in for verification.</p>
+        </div>
+      </>
+    )}
+  </>
+);
+
+export default TicketPDF;

@@ -65,7 +65,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
           
           <div className="mb-4 text-sm text-gray-400 line-clamp-2">
             {event.description?.substring(0, 80) || "Join us for this amazing event"}...
-          </div>
+          </div>  
           
           {/* Event Info Grid */}
           <div className="grid grid-cols-1 gap-2 text-sm mb-4">

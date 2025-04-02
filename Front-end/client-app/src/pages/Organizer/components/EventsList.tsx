@@ -181,43 +181,41 @@ const EventsList: React.FC<EventsListProps> = ({ refreshKey = 0 }) => {
       ) : (
         <div className="bg-[#222839] rounded-[10px] border border-gray-700 overflow-hidden">
           <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="mb-6">
               <h2 className="text-xl font-semibold text-white">Your Events</h2>
-              <button
-                onClick={() => navigate('/organizer/dashboard/create-event')}
-                className="px-4 py-2 bg-[#d7ff42] text-[#1d2132] rounded-lg hover:bg-opacity-90 transition-colors text-sm"
-              >
-                Create New Event
-              </button>
+              <p className="text-gray-400 text-sm mt-1">
+                Manage and monitor all your events from this dashboard
+              </p>
             </div>
+            
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="text-gray-400 border-b border-gray-700">
-                    <th className="px-6 py-3 text-left">Event Name</th>
-                    <th className="px-6 py-3 text-left">Date</th>
-                    <th className="px-6 py-3 text-left">Participants</th>
-                    <th className="px-6 py-3 text-left">Revenue</th>
-                    <th className="px-6 py-3 text-left">Status</th>
-                    <th className="px-6 py-3 text-left">Actions</th>
+                    <th className="px-6 py-3 text-left font-medium">Event Name</th>
+                    <th className="px-6 py-3 text-left font-medium">Date</th>
+                    <th className="px-6 py-3 text-left font-medium">Participants</th>
+                    <th className="px-6 py-3 text-left font-medium">Revenue</th>
+                    <th className="px-6 py-3 text-left font-medium">Status</th>
+                    <th className="px-6 py-3 text-left font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {events.map((event) => (
                     <motion.tr 
                       key={event._id} 
-                      className="border-b border-gray-700 hover:bg-[#1d2132] cursor-pointer"
+                      className="border-b border-gray-700 hover:bg-[#1d2132] cursor-pointer transition-colors"
                       whileHover={{ backgroundColor: 'rgba(29, 33, 50, 0.8)' }}
                       onClick={() => navigate(`/organizer/dashboard/event/${event._id}/details`)}
                     >
-                      <td className="px-6 py-4 text-white">{event.title}</td>
+                      <td className="px-6 py-4 text-white font-medium">{event.title}</td>
                       <td className="px-6 py-4 text-gray-300">
                         {formatEventDate(event.startDateTime, event.endDateTime)}
                       </td>
                       <td className="px-6 py-4 text-gray-300">
                         {calculateParticipants(event)}
                       </td>
-                      <td className="px-6 py-4 text-[#d7ff42]">
+                      <td className="px-6 py-4 text-[#d7ff42] font-medium">
                         ₹{calculateRevenue(event)}
                       </td>
                       <td className="px-6 py-4">
@@ -228,15 +226,27 @@ const EventsList: React.FC<EventsListProps> = ({ refreshKey = 0 }) => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/organizer/dashboard/event/${event._id}/statistics`);
-                          }}
-                          className="text-[#7557e1] hover:text-[#d7ff42] transition-colors"
-                        >
-                          View Details
-                        </button>
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/organizer/dashboard/event/${event._id}/statistics`);
+                            }}
+                            className="text-[#7557e1] hover:text-[#d7ff42] transition-colors text-sm font-medium"
+                          >
+                            Statistics
+                          </button>
+                          <span className="text-gray-600">|</span>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/organizer/dashboard/event/${event._id}/details`);
+                            }}
+                            className="text-[#7557e1] hover:text-[#d7ff42] transition-colors text-sm font-medium"
+                          >
+                            Details
+                          </button>
+                        </div>
                       </td>
                     </motion.tr>
                   ))}

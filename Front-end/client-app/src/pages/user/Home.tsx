@@ -9,7 +9,7 @@ const featuredEvents = [
   {
     id: 1,
     title: "TechHack 2024",
-    category: "Hackathon",
+     category: "Hackathon",
     date: "June 15-16, 2024",
     image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80",
     participants: 500,

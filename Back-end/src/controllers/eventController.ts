@@ -219,3 +219,154 @@ export const my_events = async (req: express.Request, res: express.Response): Pr
         });
     }
 };
+
+// Get event by ID for organizer (with auth check)
+export const getOrganizerEventById = async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const organizerId = req.user?.id;
+
+        if (!id) {
+            res.status(400).json({
+                success: false,
+                error: 'Event ID is required'
+            });
+            return;
+        }
+
+        // Find the event
+        const event = await Event.findById(id);
+
+        if (!event) {
+            res.status(404).json({
+                success: false,
+                error: 'Event not found'
+            });
+            return;
+        }
+
+        // Check if the event belongs to the authenticated organizer
+        if (event.organizerId.toString() !== organizerId) {
+            res.status(403).json({
+                success: false,
+                error: 'Unauthorized: You do not have permission to access this event'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: event
+        });
+    } catch (error: any) {
+        console.error('Error getting organizer event by ID:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Error getting event'
+        });
+    }
+};
+
+// Update an existing event
+export const updateEvent = async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const organizerId = req.user?.id;
+        
+        if (!organizerId) {
+            res.status(401).json({
+                success: false,
+                error: 'Not authorized - organizer ID missing'
+            });
+            return;
+        }
+
+        // Find the event to update
+        const event = await Event.findById(id);
+        
+        if (!event) {
+            res.status(404).json({
+                success: false,
+                error: 'Event not found'
+            });
+            return;
+        }
+        
+        // Verify ownership - only the event creator can update it
+        if (event.organizerId.toString() !== organizerId) {
+            res.status(403).json({
+                success: false,
+                error: 'Unauthorized: You do not have permission to update this event'
+            });
+            return;
+        }
+        
+        // Check if eventData exists in request body
+        if (!req.body.eventData) {
+            res.status(400).json({
+                success: false,
+                error: 'Event data is required'
+            });
+            return;
+        }
+        
+        // Parse the event data
+        const eventData = JSON.parse(req.body.eventData);
+        console.log('Parsed event update data:', eventData);
+        
+        // Handle file uploads if any
+        if (req.files) {
+            // Banner image
+            if (req.files.bannerImage) {
+                eventData.bannerImageUrl = req.files.bannerImage[0].path;
+            }
+
+            // Speaker images
+            if (req.files.speakerImages && eventData.speakers) {
+                req.files.speakerImages.forEach((file, index) => {
+                    const speakerIndex = parseInt(req.body[`speakerIndex${index}`] || index);
+                    if (eventData.speakers[speakerIndex]) {
+                        eventData.speakers[speakerIndex].imageUrl = file.path;
+                    }
+                });
+            }
+
+            // Resources
+            if (req.files.resources) {
+                eventData.resourceUrls = req.files.resources.map(file => file.path);
+            }
+        }
+        
+        // Ensure organizerId remains unchanged
+        eventData.organizerId = organizerId;
+        
+        // Update the event
+        const updatedEvent = await Event.findByIdAndUpdate(
+            id,
+            { $set: eventData },
+            { new: true, runValidators: true }
+        );
+        
+        if (!updatedEvent) {
+            res.status(404).json({
+                success: false,
+                error: 'Event not found or update failed'
+            });
+            return;
+        }
+        
+        res.status(200).json({
+            success: true,
+            data: updatedEvent,
+            message: 'Event updated successfully'
+        });
+        
+    } catch (error: any) {
+        console.error('Error updating event:', error);
+        
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Error updating event'
+        });
+    }
+};

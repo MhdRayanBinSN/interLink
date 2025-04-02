@@ -22,50 +22,67 @@ import { UserStatusIndicator } from './components/DevTools/UserStatusIndicator';
 import BookingConfirmation from './pages/user/BookingConfirmation';
 import OrganizerAuthGuard from './utils/organizerAuthGuard';
 
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 const App: React.FC = () => {
   const { checkAuth } = useStore();
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
   return (
-    <Router>
-      <AnimatePresence mode="wait">
-        <Routes>
-          {/* Home route without navbar */}
-          <Route path="/" element={<Home />} />
-          <Route path='/organizer' element={<OrganizerHome />}/>
-          <Route path='/organizer/register' element={<OrganizerRegister />}/>
-          <Route path='/organizer/login' element={<OrganizerLogin />}/>
-          <Route 
-            path="/organizer/dashboard/*" 
-            element={
-              <OrganizerAuthGuard>
-                <OrganizerDashboard />
-              </OrganizerAuthGuard>
-            } 
-          />
-          <Route path='/organizer/dashboard/event/:eventId/*' element={<EventDashboard />}/>
-          {/* Routes with navbar */}
-          <Route element={<MainLayout />}>  
-            <Route path="/events" element={<EventDiscovery />} />
-            <Route path="/events/:id" element={<EventDetails />} />
-            <Route path="/event/:id" element={<EventDetails />} />
-            <Route path="/event/:id/booking" element={<EventBooking />} />
-            <Route path="/events/:id/booking" element={<EventBooking />} />
-            <Route path="/booking-confirmation/:bookingId" element={<BookingConfirmation />} />
+    <>
+      <Router>
+        <AnimatePresence mode="wait">
+          <Routes>
+            {/* Home route without navbar */}
+            <Route path="/" element={<Home />} />
+            <Route path='/organizer' element={<OrganizerHome />}/>
+            <Route path='/organizer/register' element={<OrganizerRegister />}/>
+            <Route path='/organizer/login' element={<OrganizerLogin />}/>
+            <Route 
+              path="/organizer/dashboard/*" 
+              element={
+                <OrganizerAuthGuard>
+                  <OrganizerDashboard />
+                </OrganizerAuthGuard>
+              } 
+            />
+            <Route path='/organizer/dashboard/event/:eventId/*' element={<EventDashboard />}/>
+            {/* Routes with navbar */}
+            <Route element={<MainLayout />}>  
+              <Route path="/events" element={<EventDiscovery />} />
+              <Route path="/events/:id" element={<EventDetails />} />
+              <Route path="/event/:id" element={<EventDetails />} />
+              <Route path="/event/:id/booking" element={<EventBooking />} />
+              <Route path="/events/:id/booking" element={<EventBooking />} />
+              <Route path="/booking-confirmation/:bookingId" element={<BookingConfirmation />} />
 
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard/*" element={<UserDashboard />} />
-            <Route path="/dashboard/profile" element={<Profile />} />
-            <Route path="/dashboard/edit-profile" element={<EditProfile />} />
-            <Route path="/dashboard/change-password" element={<ChangePassword />} />
-          </Route>
-          
-        </Routes>
-        <UserStatusIndicator />
-      </AnimatePresence>
-    </Router>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/dashboard/*" element={<UserDashboard />} />
+              <Route path="/dashboard/profile" element={<Profile />} />
+              <Route path="/dashboard/edit-profile" element={<EditProfile />} />
+              <Route path="/dashboard/change-password" element={<ChangePassword />} />
+            </Route>
+            
+          </Routes>
+          <UserStatusIndicator />
+        </AnimatePresence>
+      </Router>
+      <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
+    </>
   );
 };
 

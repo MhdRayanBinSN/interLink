@@ -19,6 +19,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     
     if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
+      console.log('Token received:', token.substring(0, 15) + '...');
     }
     
     if (!token) {
@@ -30,23 +31,40 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     }
     
     try {
-      // Check if this is an organizer route OR an event creation route
-      const isOrganizerRoute = req.originalUrl.includes('/organizer');
-      const isEventCreationRoute = req.originalUrl.includes('/events/createEvent');
+      // Check route path to determine which secret to use
+      const isOrganizerRoute = req.originalUrl.includes('/organizer') || 
+                              req.originalUrl.includes('/events/update') || 
+                              req.originalUrl.includes('/getOrganizerEventById');
       
-      // Use organizer secret for both organizer routes AND event creation
-      const secret = (isOrganizerRoute || isEventCreationRoute) 
-        ? process.env.ACCESS_TOKEN_SECRET as string
-        : process.env.JWT_SECRET || 'supersecretkey';
+      // Use different secrets based on route
+      let secret;
+      let decoded;
       
-      // Verify token
-      const decoded = jwt.verify(token, secret);
-      
-      // Add user to request
-      if (isOrganizerRoute || isEventCreationRoute) {
-        req.user = (decoded as any).user;
+      if (isOrganizerRoute) {
+        // For organizer routes
+        secret = process.env.ACCESS_TOKEN_SECRET || 'your-organizer-secret-key';
+        console.log('Using organizer secret for', req.originalUrl);
+        
+        decoded = jwt.verify(token, secret);
+        
+        if (decoded && (decoded as any).user) {
+          req.user = (decoded as any).user;
+        } else {
+          throw new Error('Invalid token structure');
+        }
       } else {
-        req.user = await User.findById((decoded as any).id);
+        // For user routes
+        secret = process.env.JWT_SECRET || 'your-user-secret-key';
+        console.log('Using user secret for', req.originalUrl);
+        
+        decoded = jwt.verify(token, secret);
+        
+        if (decoded && (decoded as any).id) {
+          // For user tokens that have the user ID directly in payload
+          req.user = { id: (decoded as any).id };
+        } else {
+          throw new Error('Invalid token structure');
+        }
       }
       
       next();
@@ -54,8 +72,9 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       console.error('Token verification failed:', error);
       res.status(401).json({
         success: false,
-        error: 'Invalid token'
+        error: 'Token verification failed - please login again'
       });
+      return;
     }
   } catch (error: any) {
     console.error('Auth middleware error:', error);
@@ -63,5 +82,6 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       success: false,
       error: error.message || 'Server error'
     });
+    return;
   }
 };
